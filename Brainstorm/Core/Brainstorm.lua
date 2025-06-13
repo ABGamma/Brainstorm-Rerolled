@@ -17,6 +17,8 @@ Brainstorm.config = {
     modifier = "lctrl",
     f_reroll = "r",
     a_reroll = "a",
+    s_state = "z",
+    l_state = "x",
   },
   ar_filters = {
     pack = {},
