@@ -7,6 +7,8 @@ Brainstorm.VERSION = "Brainstorm v2.2.0-alpha"
 
 Brainstorm.SMODS = nil
 
+local saveKeys = { "1", "2", "3", "4", "5" }
+
 Brainstorm.config = {
   enable = true,
   keybind_autoreroll = "r",
@@ -93,6 +95,27 @@ end
 local key_press_update_ref = Controller.key_press_update
 function Controller:key_press_update(key, dt)
   key_press_update_ref(self, key, dt)
+  for i, k in ipairs(saveKeys) do
+    --  SaveState
+    if key == k and love.keyboard.isDown(keybinds.s_state) then
+      if G.STAGE == G.STAGES.RUN then
+        compress_and_save(G.SETTINGS.profile .. "/" .. "saveState" .. k .. ".jkr", G.ARGS.save_run)
+        saveManagerAlert("Saved state to slot [" .. k .. "]")
+        end
+        end
+        --  LoadState
+        if key == k and love.keyboard.isDown(keybinds.l_state) then
+          G:delete_run()
+          G.SAVED_GAME = get_compressed(G.SETTINGS.profile .. "/" .. "saveState" .. k .. ".jkr")
+          if G.SAVED_GAME ~= nil then
+            G.SAVED_GAME = STR_UNPACK(G.SAVED_GAME)
+            end
+            G:start_run({
+              savetext = G.SAVED_GAME,
+            })
+            saveManagerAlert("Loaded save from slot [" .. k .. "]")
+        end
+  end
   local keybinds = Brainstorm.config.keybinds
   if love.keyboard.isDown(keybinds.modifier) then
     if key == keybinds.f_reroll then
@@ -101,6 +124,39 @@ function Controller:key_press_update(key, dt)
       Brainstorm.ar_active = not Brainstorm.ar_active
     end
   end
+end
+
+function saveManagerAlert(text)
+G.E_MANAGER:add_event(Event({
+  trigger = "after",
+  delay = 0.4,
+  func = function()
+  attention_text({
+    text = text,
+    scale = 0.7,
+    hold = 3,
+    major = G.STAGE == G.STAGES.RUN and G.play or G.title_top,
+    backdrop_colour = G.C.SECONDARY_SET.Tarot,
+    align = "cm",
+    offset = {
+      x = 0,
+      y = -3.5,
+    },
+    silent = true,
+  })
+  G.E_MANAGER:add_event(Event({
+    trigger = "after",
+    delay = 0.06 * G.SETTINGS.GAMESPEED,
+    blockable = false,
+    blocking = false,
+    func = function()
+    play_sound("other1", 0.76, 0.4)
+    return true
+    end,
+  }))
+  return true
+  end,
+}))
 end
 
 function Brainstorm.reroll()
