@@ -96,36 +96,37 @@ end
 
 local key_press_update_ref = Controller.key_press_update
 function Controller:key_press_update(key, dt)
-  key_press_update_ref(self, key, dt)
-  for i, k in ipairs(saveKeys) do
-    --  SaveState
-    if key == k and love.keyboard.isDown(keybinds.s_state) then
-      if G.STAGE == G.STAGES.RUN then
-        compress_and_save(G.SETTINGS.profile .. "/" .. "saveState" .. k .. ".jkr", G.ARGS.save_run)
-        saveManagerAlert("Saved state to slot [" .. k .. "]")
-        end
+    local keybinds = Brainstorm.config.keybinds
+    key_press_update_ref(self, key, dt)
+    for i, k in ipairs(saveKeys) do
+        --  SaveState
+        if key == k and love.keyboard.isDown(keybinds.s_state) then
+            if G.STAGE == G.STAGES.RUN then
+                compress_and_save(G.SETTINGS.profile .. "/" .. "saveState" .. k .. ".jkr", G.ARGS.save_run)
+                saveManagerAlert("Saved state to slot [" .. k .. "]")
+            end
         end
         --  LoadState
         if key == k and love.keyboard.isDown(keybinds.l_state) then
-          G:delete_run()
-          G.SAVED_GAME = get_compressed(G.SETTINGS.profile .. "/" .. "saveState" .. k .. ".jkr")
-          if G.SAVED_GAME ~= nil then
-            G.SAVED_GAME = STR_UNPACK(G.SAVED_GAME)
+            G:delete_run()
+            G.SAVED_GAME = get_compressed(G.SETTINGS.profile .. "/" .. "saveState" .. k .. ".jkr")
+            if G.SAVED_GAME ~= nil then
+                G.SAVED_GAME = STR_UNPACK(G.SAVED_GAME)
             end
             G:start_run({
-              savetext = G.SAVED_GAME,
+                savetext = G.SAVED_GAME,
             })
             saveManagerAlert("Loaded save from slot [" .. k .. "]")
         end
-  end
-  local keybinds = Brainstorm.config.keybinds
-  if love.keyboard.isDown(keybinds.modifier) then
-    if key == keybinds.f_reroll then
-      Brainstorm.reroll()
-    elseif key == keybinds.a_reroll then
-      Brainstorm.ar_active = not Brainstorm.ar_active
     end
-  end
+  
+    if love.keyboard.isDown(keybinds.modifier) then
+        if key == keybinds.f_reroll then
+            Brainstorm.reroll()
+        elseif key == keybinds.a_reroll then
+            Brainstorm.ar_active = not Brainstorm.ar_active
+        end
+    end
 end
 
 function saveManagerAlert(text)
