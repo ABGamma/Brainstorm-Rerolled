@@ -10,10 +10,33 @@
 #define IMMOLATE_API
 #endif
 
+enum class customFilters {
+    NO_FILTER,
+    NEGATIVE_BLUEPRINT
+};
+
+inline std::string filterToString(customFilters f) {
+       switch (f) {
+        case customFilters::NO_FILTER:
+            return "No Filter";
+        case customFilters::NEGATIVE_BLUEPRINT:
+            return "Negative Blueprint";
+        default:
+            return "Unknown Filter";
+	   }
+}
+
+inline customFilters stringToFilter(std::string i) {
+    if (i == "No Filter") return customFilters::NO_FILTER;
+    // Add more cases for other items as needed
+	if (i == "Negative Blueprint") return customFilters::NEGATIVE_BLUEPRINT;
+    return customFilters::NO_FILTER; // Default case
+}
+
 // Declare the functions with IMMOLATE_API
-IMMOLATE_API std::string brainstorm_cpp(std::string seed, std::string voucher, std::string pack, std::string tag, double souls, bool observatory, bool perkeo, bool copymoney, bool retcon, bool bean, bool burglar);
+IMMOLATE_API std::string brainstorm_cpp(std::string seed, std::string voucher, std::string pack, std::string tag, double souls, bool observatory, bool perkeo, bool copymoney, bool retcon, bool bean, bool burglar, std::string customFilter);
 extern "C" {
-    IMMOLATE_API const char* brainstorm(const char* seed, const char* voucher, const char* pack, const char* tag, double souls, bool observatory, bool perkeo, bool copymoney, bool retcon, bool bean, bool burglar);
+    IMMOLATE_API const char* brainstorm(const char* seed, const char* voucher, const char* pack, const char* tag, double souls, bool observatory, bool perkeo, bool copymoney, bool retcon, bool bean, bool burglar, const char* customFilter);
     IMMOLATE_API void free_result(const char* result);
 }
 

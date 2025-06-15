@@ -20,6 +20,11 @@ local tag_list = {
   ["D6 Tag"] = "tag_d_six",
 }
 
+local custom_filter_list = {
+  ["None"] = "No Filter",
+  ["Negative Blueprint"] = "Negative Blueprint",
+}
+
 local voucher_list = {
   ["None"] = "",
   ["Overstock"] = "v_overstock_norm",
@@ -119,6 +124,10 @@ local tag_keys = {
   "D6 Tag",
 }
 
+local custom_filter_keys = {
+  "No Filter",
+  "Negative Blueprint",
+}
 local pack_keys = {
   "None",
   "Normal Arcana",
@@ -153,6 +162,12 @@ end
 G.FUNCS.change_target_tag = function(x)
   Brainstorm.config.ar_filters.tag_id = x.to_key
   Brainstorm.config.ar_filters.tag_name = tag_list[x.to_val]
+  Brainstorm.writeConfig()
+end
+
+G.FUNCS.change_target_custom_filter = function(x)
+  Brainstorm.config.ar_filters.custom_filter_id = x.to_key
+  Brainstorm.config.ar_filters.custom_filter_name = custom_filter_list[x.to_val]
   Brainstorm.writeConfig()
 end
 
@@ -202,6 +217,14 @@ function create_tabs(args)
                   options = tag_keys,
                   opt_callback = "change_target_tag",
                   current_option = Brainstorm.config.ar_filters.tag_id or 1,
+                }),
+                create_option_cycle({
+                  label = "AR: CUSTOM FILTERS",
+                  scale = 0.8,
+                  w = 4,
+                  options = custom_filter_keys,
+                  opt_callback = "change_target_custom_filter",
+                  current_option = Brainstorm.config.ar_filters.custom_filter_id or 1,
                 }),
                 create_option_cycle({
                   label = "AR: VOUCHER SEARCH",
