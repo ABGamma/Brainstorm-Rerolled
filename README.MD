@@ -16,7 +16,7 @@ in order to properly use your new options
 
 ### Windows
 
-2. Download the [latest release](https://github.com/OceanRamen/Brainstorm/releases/) of Brainstorm.
+2. Download the [latest release](https://github.com/ABGamma/Brainstorm-Rerolled/releases) of Brainstorm-Rerolled.
 3. Unzip the file, and place it in `.../%appdata%/balatro/mods` -- Make sure the Mod's directory name is 'Brainstorm' [^1]
 4. Reload the game to activate the mod.
 
