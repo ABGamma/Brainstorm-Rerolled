@@ -44,3 +44,8 @@ ANTE 8 BEAN: This ensures you get a Turtle Bean within the first 150 items in th
 LATE BURGLAR: This ensures there is a burglar within the first 50-150 cards in the ante 6, 7, or 8 shop  
 RETCON: This ensures that the retcon voucher appears before or in ante 8  
 EARLY COPY + MONEY: This ensures that between the shop and the packs in ante 1 you get a brainstorm, blueprint, and some form of money generation
+
+### Custom Filtering
+I have added some basic code and an example to go off of to create custom filters. I have set it up so that custom filters will override any other selected filter to avoid crashes. If you want to use
+the mod as originally created simply keep the custom filters set to "No Filter". If you want to create your own custom filters you will need to edit immolate.cpp and immolate.hpp to add your custom filter similar to how I added the "Negative Blueprint" filter
+once added there you can build it and then copy the resulting dll into the brainstorm mod folder. Then you need to update the ui.lua and brainstorm.lua too add your new filter to the list.
