@@ -31,7 +31,11 @@ Brainstorm.config = {
     inst_observatory = false,
     inst_perkeo = false,
     copy_money = false,
+    bean = false,
+    burglar = false,
     retcon = false,
+    custom_filter_name = "no_filter",
+    custom_filter_id = 1
   },
   ar_prefs = {
     spf_id = 3,
@@ -222,7 +226,7 @@ function Brainstorm.autoReroll()
   local ffi = require("ffi")
   local lovely = require("lovely")
   ffi.cdef([[
-	const char* brainstorm(const char* seed, const char* voucher, const char* pack, const char* tag, double souls, bool observatory, bool perkeo, bool copymoney, bool retcon, bool bean, bool burglar);
+	const char* brainstorm(const char* seed, const char* voucher, const char* pack, const char* tag, double souls, bool observatory, bool perkeo, bool copymoney, bool retcon, bool bean, bool burglar, const char* customFilter);
     ]])
   local immolate = ffi.load(Brainstorm.PATH .. "/Immolate.dll")
   local pack
@@ -242,7 +246,12 @@ function Brainstorm.autoReroll()
     set = "Voucher",
     key = Brainstorm.config.ar_filters.voucher_name,
   })
-  print(pack_name, tag_name, voucher_name)
+  --local custom_filter_name = localize({
+  --    type = "name_text",
+  --    set = "Other",
+  --    key = Brainstorm.config.ar_filters.custom_filter_name
+  --})
+  print(pack_name, tag_name, voucher_name)--, custom_filter_name)
   seed_found = ffi.string(
     immolate.brainstorm(
       seed_found,
@@ -255,7 +264,8 @@ function Brainstorm.autoReroll()
       Brainstorm.config.ar_filters.copy_money,
       Brainstorm.config.ar_filters.retcon,
       Brainstorm.config.ar_filters.bean,
-      Brainstorm.config.ar_filters.burglar
+      Brainstorm.config.ar_filters.burglar,
+      Brainstorm.config.ar_filters.custom_filter_name
     )
   )
   if seed_found then
@@ -279,7 +289,8 @@ function Brainstorm.autoReroll()
         Brainstorm.config.ar_filters.copy_money,
         Brainstorm.config.ar_filters.retcon,
         Brainstorm.config.ar_filters.bean,
-        Brainstorm.config.ar_filters.burglar
+        Brainstorm.config.ar_filters.burglar,
+        custom_filter_name
       },
     }
     G.GAME.seeded = false
