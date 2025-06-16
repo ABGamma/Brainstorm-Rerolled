@@ -49,9 +49,3 @@ cmake -B build
 cmake --build build --config Release
 ```
 
-## Future Plans
-- SIMD
-- CLI
-- custom filters with JSON
-- add all unimplemented sources
-- compatibility with modded items?
