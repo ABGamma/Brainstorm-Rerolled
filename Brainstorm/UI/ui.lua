@@ -23,6 +23,8 @@ local tag_list = {
 local custom_filter_list = {
   ["None"] = "No Filter",
   ["Negative Blueprint"] = "Negative Blueprint",
+  ["Negative Perkeo"] = "Negative Perkeo",
+  ["N_Perk_Blueprint"] = "N_Perk_Blueprint"
 }
 
 local voucher_list = {
@@ -127,6 +129,8 @@ local tag_keys = {
 local custom_filter_keys = {
   "No Filter",
   "Negative Blueprint",
+  "Negative Perkeo",
+  "N_Perk_Blueprint",
 }
 local pack_keys = {
   "None",

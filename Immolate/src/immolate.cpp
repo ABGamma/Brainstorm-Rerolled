@@ -192,8 +192,10 @@ long filter(Instance inst) {
             bool bprint = false;
             for (int i = 0; i < 4; i++) {
                 ShopItem item = inst.nextShopItem(1);
-                if (item.item == Item::Blueprint && item.jokerData.edition == Item::Negative) {
-                    bprint = true;
+                if (item.type == Item::Joker) {
+                    if (item.jokerData.joker == Item::Blueprint && item.jokerData.edition == Item::Negative) {
+                        bprint = true;
+                    }
                 }
             }
             if (bprint) {
@@ -225,7 +227,79 @@ long filter(Instance inst) {
             }
             return 0; // Return 0 if no negative blueprint is found 
         }
+        case customFilters::NEGATIVE_PERKEO: {
+			bool negativePerkeo = false;
+            if (inst.nextTag(1) != Item::Charm_Tag) {
+                return 0;
+            }
+            auto tarots = inst.nextArcanaPack(5, 1); //Mega Arcana Pack, assumed from a Charm Tag
+            for (int t = 0; t < 5; t++) {
+                if (tarots[t] == Item::The_Soul) {
+					auto nextJoker = inst.nextJoker(ItemSource::Soul, 1, true);
+                    if (nextJoker.joker == Item::Perkeo && nextJoker.edition == Item::Negative) {
+                        negativePerkeo = true;
+                        break;
+                    }
+                    break;
+                }
+            }
+            if (!negativePerkeo) {
+                return 0; // If Perkeo is required but not found, return 0
+            }
+            
+			return 1; // Return a score of 1 if a negative Perkeo is found
 
+        }
+        case customFilters::NEGATIVE_PERKEO_BLUEPRINT: {
+            bool negativePerkeo = false;
+            if (inst.nextTag(1) != Item::Charm_Tag) {
+                return 0;
+            }
+            auto tarots = inst.nextArcanaPack(5, 1); //Mega Arcana Pack, assumed from a Charm Tag
+            for (int t = 0; t < 5; t++) {
+                if (tarots[t] == Item::The_Soul) {
+                    auto nextJoker = inst.nextJoker(ItemSource::Soul, 1, true);
+                    if (nextJoker.joker == Item::Perkeo && nextJoker.edition == Item::Negative) {
+                        negativePerkeo = true;
+                        break;
+                    }
+                    break;
+                }
+            }
+            if (!negativePerkeo) {
+                return 0; // If Perkeo is required but not found, return 0
+			}
+            bool bprint = false;
+            for (int i = 0; i < 2; i++) {
+                ShopItem item = inst.nextShopItem(1);
+                if (item.type == Item::Joker) {
+                    if (item.jokerData.joker == Item::Blueprint && item.jokerData.edition == Item::Negative) {
+                        bprint = true;
+                    }
+                }
+            }
+            if (bprint) {
+                return 1; // Return a score of 1 if a negative blueprint is found
+            }
+            Pack pack = packInfo(inst.nextPack(1));
+            for (int p = 0; p <= 2; p++) {
+                if (pack.type == Item::Buffoon_Pack || pack.type == Item::Jumbo_Buffoon_Pack || pack.type == Item::Mega_Buffoon_Pack) {
+                    auto packContents = inst.nextBuffoonPack(pack.size, 1);
+                    for (int x = 0; x < pack.size; x++) {
+                        if (packContents[x].joker == Item::Blueprint && packContents[x].edition == Item::Negative) {
+                            bprint = true;
+                            break;
+                        }
+                    }
+                }
+                pack = packInfo(inst.nextPack(1));
+            }
+            if (bprint) {
+                return 1; // Return a score of 1 if a negative blueprint is found
+            }
+
+            return 0; // Return 0 if no negative blueprint is found 
+        }
         default:
             return 1;
     }
@@ -244,7 +318,7 @@ std::string brainstorm_cpp(std::string seed, std::string voucher, std::string pa
 	BRAINSTORM_RETCON = retcon;
 	BRAINSTORM_ANTE6_BURGLAR = burglar;
 	BRAINSTORM_ANTE8_BEAN = bean;
-    Search search(filter, seed, 12, 100000000);
+    Search search(filter, seed, 12, 2318107019761);
     search.exitOnFind = true;
     return search.search();
 }
