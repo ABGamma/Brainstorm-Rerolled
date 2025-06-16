@@ -17,26 +17,72 @@
 #include <chrono>
 
 long filter(Instance inst) {
-  long legendaries = 0;
-  inst.nextPack(1);
-  for (int p = 1; p <= 3; p++) {
+    bool negativePerkeo = false;
+    inst.initLocks(1, false, true);
+    bool observatory = false;
+    bool telescope = false;
+    
+    if (inst.nextTag(1) != Item::Charm_Tag) {
+        return 0;
+    }
+    auto tarots = inst.nextArcanaPack(5, 1); //Mega Arcana Pack, assumed from a Charm Tag
+    for (int t = 0; t < 5; t++) {
+        if (tarots[t] == Item::The_Soul) {
+            auto nextJoker = inst.nextJoker(ItemSource::Soul, 1, true);
+            if (nextJoker.joker == Item::Perkeo && nextJoker.edition == Item::Negative) {
+                negativePerkeo = true;
+                break;
+            }
+            break;
+        }
+    }
+    if (!negativePerkeo) {
+        return 0; // If Perkeo is required but not found, return 0
+    }
+    for (int i = 1; i < 9; i++) {
+        auto voucher = inst.nextVoucher(i);
+        inst.activateVoucher(voucher);
+        if (voucher == Item::Telescope || telescope) {
+            telescope = true;
+            if (voucher == Item::Observatory) {
+                observatory = true;
+            }
+        }
+    }
+    if (!observatory) {
+        return 0; // If Retcon is not found, return 0
+    }
+    bool bprint = false;
+    for (int i = 0; i < 2; i++) {
+        ShopItem item = inst.nextShopItem(1);
+        if (item.type == Item::Joker) {
+            if (item.jokerData.joker == Item::Blueprint) {
+                bprint = true;
+            }
+        }
+    }
+    if (bprint) {
+        return 1; // Return a score of 1 if a negative blueprint is found
+    }
     Pack pack = packInfo(inst.nextPack(1));
-    if (pack.type == Item::Arcana_Pack) {
-      auto packContents = inst.nextArcanaPack(pack.size, 1);
-      for (int x = 0; x < pack.size; x++) {
-        if (packContents[x] == Item::The_Soul)
-          legendaries++;
-      }
+    for (int p = 0; p <= 2; p++) {
+        if (pack.type == Item::Buffoon_Pack || pack.type == Item::Jumbo_Buffoon_Pack || pack.type == Item::Mega_Buffoon_Pack) {
+            auto packContents = inst.nextBuffoonPack(pack.size, 1);
+            for (int x = 0; x < pack.size; x++) {
+                if (packContents[x].joker == Item::Blueprint) {
+                    bprint = true;
+                    break;
+                }
+            }
+        }
+        pack = packInfo(inst.nextPack(1));
     }
-    if (pack.type == Item::Spectral_Pack) {
-      auto packContents = inst.nextSpectralPack(pack.size, 1);
-      for (int x = 0; x < pack.size; x++) {
-        if (packContents[x] == Item::The_Soul)
-          legendaries++;
-      }
+    if (bprint) {
+        return 1; // Return a score of 1 if a negative blueprint is found
     }
-  }
-  return legendaries;
+
+
+    return 0; // Return 0 if no negative blueprint is found 
 };
 
 
@@ -86,9 +132,10 @@ int main() {
   //benchmark_quick_lucky();
   //benchmark_blank();
   //benchmark();
-  Search search(filter_retcon, "11111J31", 12, 2318107019761);
+  Search search(filter, "KY9AZX31", 12, 2318107019761);
   search.highScore = 1;
   search.printDelay = 100000;
+  search.exitOnFind = true;
   search.search();
   return 1;
 }
