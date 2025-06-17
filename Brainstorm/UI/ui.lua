@@ -21,7 +21,7 @@ local tag_list = {
 }
 
 local custom_filter_list = {
-  ["None"] = "No Filter",
+  ["No Filter"] = "No Filter",
   ["Negative Blueprint"] = "Negative Blueprint",
   ["Negative Perkeo"] = "Negative Perkeo",
   ["N_Perk_Blueprint"] = "N_Perk_Blueprint"
