@@ -49,3 +49,18 @@ EARLY COPY + MONEY: This ensures that between the shop and the packs in ante 1 y
 I have added some basic code and an example to go off of to create custom filters. I have set it up so that custom filters will override any other selected filter to avoid crashes. If you want to use
 the mod as originally created simply keep the custom filters set to "No Filter". If you want to create your own custom filters you will need to edit immolate.cpp and immolate.hpp to add your custom filter similar to how I added the "Negative Blueprint" filter
 once added there you can build it and then copy the resulting dll into the brainstorm mod folder. Then you need to update the ui.lua and brainstorm.lua too add your new filter to the list.
+
+#### Adding Custom Filters
+1. Open immolate.hpp
+	1. Add the name of your new filter to `enum class customFilters`
+	1. Add a new case in `inline std::string filterToString(customFilters f)` for your new filter
+	1. add a new if statement in `inline customFilters stringToFilter(std::string i)` for your new filter
+1. Open immolate.cpp
+	1. Add a new case in the switch statement for your filter to `long filter(Instance inst)`
+	1. Add corresponding code inside of that case for your custom filter
+1. Save and build the C++ code and copy the resulting dll into the brainstorm mod folder
+1. Open ui.lua
+	1. Add a new entry to the `local custom_filter_list` corresponding to your new filter
+	1. Add a new entry to the `local custom_filter_keys` corresponding to your new filter
+1. Save ui.lua and run the game
+1. Your new filter should now be usable in the brainstorm settings
