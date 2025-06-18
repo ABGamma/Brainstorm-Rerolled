@@ -300,6 +300,34 @@ long filter(Instance inst) {
 
             return 0; // Return 0 if no negative blueprint is found 
         }
+        case customFilters::PERKEO_BASEBALL: {
+            bool perkeo = false;
+            if (inst.nextTag(1) != Item::Charm_Tag) {
+                return 0;
+            }
+            auto tarots = inst.nextArcanaPack(5, 1); //Mega Arcana Pack, assumed from a Charm Tag
+            for (int t = 0; t < 5; t++) {
+                if (tarots[t] == Item::The_Soul) {
+                    auto nextJoker = inst.nextJoker(ItemSource::Soul, 1, true);
+                    if (nextJoker.joker == Item::Perkeo) {
+                        perkeo = true;
+                        break;
+                    }
+                    break;
+                }
+            }
+            if (!perkeo) {
+                return 0; // If Perkeo is required but not found, return 0
+            }
+            Pack pack = packInfo(inst.nextPack(1));
+            auto packContents = inst.nextBuffoonPack(pack.size, 1);
+            for (int x = 0; x < pack.size; x++) {
+                if (packContents[x].joker == Item::Baseball_Card && packContents[x].edition == Item::Negative) {
+					return 1; // Return a score of 1 if a negative Baseball Card is found
+                }
+            }
+			return 0; // Return 0 if no negative Baseball Card is found
+        }
         default:
             return 1;
     }

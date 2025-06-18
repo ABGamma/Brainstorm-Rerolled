@@ -24,7 +24,8 @@ local custom_filter_list = {
   ["No Filter"] = "No Filter",
   ["Negative Blueprint"] = "Negative Blueprint",
   ["Negative Perkeo"] = "Negative Perkeo",
-  ["N_Perk_Blueprint"] = "N_Perk_Blueprint"
+  ["N_Perk_Blueprint"] = "N_Perk_Blueprint",
+  ["Perkeo Baseball"] = "Perkeo Baseball",
 }
 
 local voucher_list = {
@@ -131,6 +132,7 @@ local custom_filter_keys = {
   "Negative Blueprint",
   "Negative Perkeo",
   "N_Perk_Blueprint",
+  "Perkeo Baseball"
 }
 local pack_keys = {
   "None",
