@@ -7,6 +7,16 @@ add the code to the Immolate.cpp file, update the brainstorm endpoints to includ
 that you can then place in the mods folder of balatro. The brainstorm mod will automatically detect the dll and use it, though you will need to update the brainstorm.lua and ui.lua 
 in order to properly use your new options
 
+## READ THIS BEFORE USING THE MOD
+
+This mod utilizes an external DLL to perform the seed finding. This DLL is built from the Immolate C++ project in this repository. This comes with some performance gains but also some 
+oddities.  
+
+1. The DLL will utilize 100% of your CPU if you have 12 or less cores
+1. The game will look frozen and unresponsive when searching for a seed. If you click on the game windows will say it is not responding
+1. Some filters can take hours to find a seed depending on your CPU and the filter selected. Please be patient
+1. Ensure you download Brainstorm.zip if all you want is the mod. The Immolate C++ code is only needed if you want to create custom filters and are familiar with C++
+
 ## Requirements for Brainstorm
 - [Lovely](https://github.com/ethangreen-dev/lovely-injector) injector -- Get it here: https://github.com/ethangreen-dev/lovely-injector/releases
 
@@ -17,12 +27,12 @@ in order to properly use your new options
 ### Windows
 
 2. Download the [latest release](https://github.com/ABGamma/Brainstorm-Rerolled/releases) of Brainstorm-Rerolled.
-3. Unzip the file, and place it in `.../%appdata%/balatro/mods` -- Make sure the Mod's directory name is 'Brainstorm' [^1]
+3. Unzip the file, and place it in `.../%appdata%/balatro/mods` 
 4. Reload the game to activate the mod.
 
 ## Features
 ### Save-States
-Brainstorm has the capability to save up to 5 save-states through the use of in-game key binds. 
+Brainstorm-Rerolled has the capability to save up to 5 save-states through the use of in-game key binds. 
 > To create a save-state: Hold `z + 1-5`
 > To load a save-state:	Hold `x + 1-5`
 
