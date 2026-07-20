@@ -1,0 +1,42 @@
+name: Build Immolate
+
+on:
+  push:
+    branches: [main]
+    paths: ["Immolate/**", ".github/workflows/build-immolate.yml"]
+  pull_request:
+    paths: ["Immolate/**", ".github/workflows/build-immolate.yml"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.artifact }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: Immolate.dll
+            built-path: Immolate/build/Release/Immolate.dll
+          - os: macos-latest
+            artifact: Immolate.dylib
+            built-path: Immolate/build/Immolate.dylib
+            # universal binary so both Apple Silicon and Intel Macs work
+            cmake-args: -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          - os: ubuntu-latest
+            artifact: Immolate.so
+            built-path: Immolate/build/Immolate.so
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        working-directory: Immolate
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake-args }}
+      - name: Build
+        working-directory: Immolate
+        run: cmake --build build --config Release --target Immolate
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.built-path }}
+          if-no-files-found: error
