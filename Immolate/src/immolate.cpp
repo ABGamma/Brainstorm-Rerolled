@@ -1,4 +1,3 @@
-#define IMMOLATE_API __declspec(dllexport)
 #include "functions.hpp"
 #include"immolate.hpp"
 #include "search.hpp"

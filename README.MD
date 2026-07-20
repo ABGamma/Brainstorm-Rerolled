@@ -30,6 +30,18 @@ oddities.
 3. Unzip the file, and place it in `.../%appdata%/balatro/mods` 
 4. Reload the game to activate the mod.
 
+### macOS / Linux
+
+2. Download the [latest release](https://github.com/ABGamma/Brainstorm-Rerolled/releases) of Brainstorm-Rerolled and place the `Brainstorm` folder in your Balatro `Mods` directory (macOS: `~/Library/Application Support/Balatro/Mods`).
+3. Build the native Immolate library (requires CMake and a C++17 compiler such as clang or gcc):
+   ```sh
+   cd Immolate
+   cmake -B build -DCMAKE_BUILD_TYPE=Release
+   cmake --build build --target Immolate
+   ```
+4. Copy the built `Immolate.dylib` (macOS) or `Immolate.so` (Linux) into the `Brainstorm` mod folder next to `lovely.toml`. The mod picks the right library name for your OS at runtime.
+5. Reload the game to activate the mod. If the native library is missing, save-states and fast rerolling still work; auto-reroll shows an in-game notice instead of crashing.
+
 ## Features
 ### Save-States
 Brainstorm-Rerolled has the capability to save up to 5 save-states through the use of in-game key binds. 

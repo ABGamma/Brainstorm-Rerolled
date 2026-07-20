@@ -28,15 +28,20 @@ set(EXECUTABLE_SOURCES
 if(MSVC)
     set(OPTIMIZATION_FLAGS "/Ox")  # Full optimization for MSVC
 else()
-    set(OPTIMIZATION_FLAGS "-O3 -g -std=c++20 -Wall -Wextra -Wpedantic -Wno-c++17-extensions -gdwarf-3 -ldl")  # Full optimization for GCC/Clang, plus debugging info
+    # -ffp-contract=off is required for correctness, not just consistency:
+    # clang (aarch64) and gcc contract a*b+c into fused multiply-adds by
+    # default, which changes the low bits of the doubles used by the seed RNG
+    # and makes the search disagree with the game.
+    set(OPTIMIZATION_FLAGS "-O3 -g -std=c++20 -ffp-contract=off -Wall -Wextra -Wpedantic -Wno-c++17-extensions -gdwarf-3 -ldl")  # Full optimization for GCC/Clang, plus debugging info
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPTIMIZATION_FLAGS}")
 
-# Arm specific flags, todo; properly test this
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-model=fast -fp-model=fast")
-endif()
+# Note: fast-math must stay off on every platform. The seed search relies on
+# exactly reproducing the game's IEEE-754 double arithmetic, and
+# -ffp-model=fast is allowed to reorder/contract float ops, which silently
+# breaks seed matching. (The previous ARM-only block also used the Intel
+# compiler spelling -fp-model=fast, which clang rejects outright.)
 
 # Output compile_commands.json for clangd stuff
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

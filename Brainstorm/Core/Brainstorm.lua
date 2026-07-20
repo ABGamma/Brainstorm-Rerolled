@@ -9,6 +9,32 @@ Brainstorm.SMODS = nil
 
 local saveKeys = { "1", "2", "3", "4", "5" }
 
+-- Native Immolate library, loaded lazily and cached. Cached because repeating
+-- an identical ffi.cdef raises "attempt to redefine" in LuaJIT.
+local immolate_lib = nil
+local function loadImmolate()
+  if immolate_lib then
+    return immolate_lib
+  end
+  local ffi = require("ffi")
+  ffi.cdef([[
+	const char* brainstorm(const char* seed, const char* voucher, const char* pack, const char* tag, double souls, bool observatory, bool perkeo, bool copymoney, bool retcon, bool bean, bool burglar, const char* customFilter);
+    ]])
+  local lib_names = ({
+    Windows = { "Immolate.dll" },
+    OSX = { "Immolate.dylib", "Immolate.dll" },
+    Linux = { "Immolate.so", "Immolate.dll" },
+  })[ffi.os] or { "Immolate.dll" }
+  for _, name in ipairs(lib_names) do
+    local ok, lib = pcall(ffi.load, Brainstorm.PATH .. "/" .. name)
+    if ok then
+      immolate_lib = lib
+      return immolate_lib
+    end
+  end
+  return nil
+end
+
 Brainstorm.config = {
   enable = true,
   keybind_autoreroll = "r",
@@ -224,11 +250,11 @@ function Brainstorm.autoReroll()
       + 0.412311010 * G.CONTROLLER.cursor_hover.time
   )
   local ffi = require("ffi")
-  local lovely = require("lovely")
-  ffi.cdef([[
-	const char* brainstorm(const char* seed, const char* voucher, const char* pack, const char* tag, double souls, bool observatory, bool perkeo, bool copymoney, bool retcon, bool bean, bool burglar, const char* customFilter);
-    ]])
-  local immolate = ffi.load(Brainstorm.PATH .. "/Immolate.dll")
+  local immolate = loadImmolate()
+  if not immolate then
+    saveManagerAlert("Auto-reroll unavailable: no native Immolate library for this OS")
+    return true -- stop the auto-reroll loop instead of crashing
+  end
   local pack
   if #Brainstorm.config.ar_filters.pack > 0 then
     pack = Brainstorm.config.ar_filters.pack[1]:match("^(.*)_")
