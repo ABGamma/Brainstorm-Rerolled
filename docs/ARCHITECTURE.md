@@ -263,7 +263,7 @@ versions (Vagabond: uncommon in 1.0.0, rare in 1.0.1), and the rarity lookup
 must use the current version.
 
 **Saved filters and the in-game builder** are `Brainstorm/UI/filter_builder.lua`.
-Settings > Brainstorm shows the ACTIVE FILTER (a cycler over the saved
+Settings > Brainstorm-Rerolled shows the ACTIVE FILTER (a cycler over the saved
 filters, or None) and an EDIT FILTERS button. Filters are kept in
 `Brainstorm.config.filters` (`{ active = n, list = { {name,
 assume_enhanced, conditions}, ... } }`); the active one is turned into the
@@ -438,7 +438,7 @@ of once per draw, and the key strings are built once instead of per item.
 compiler builds `Immolate.dll` and Wine runs the tests (commands in the
 README). **macOS builds need Apple's tools**, so they run on GitHub Actions:
 `.github/workflows/build.yml` builds and tests on real Windows and macOS
-machines, then publishes a ready-to-install `Brainstorm` folder as a
+machines, then publishes a ready-to-install `Brainstorm-Rerolled` folder as a
 downloadable artifact. It only runs when started by hand (Actions tab ->
 build -> Run workflow) to stay within the free minutes of a private repo.
 
@@ -495,7 +495,7 @@ built.
 ## 10. File map
 
 ```
-Brainstorm/                    the mod folder players install
+Brainstorm/                    the mod (players install it as Brainstorm-Rerolled/)
   lovely.toml                  tells Lovely what to inject
   Core/Brainstorm.lua          keybinds, save states, auto-reroll flow
   Core/native.lua              FFI bridge to the native library
@@ -520,5 +520,6 @@ Immolate/
   tests/                       golden, API, math, prefilter, fastscan, filterprog tests + bench
 docs/
   ARCHITECTURE.md              this file
-.github/workflows/build.yml    CI: build + test + package
+.github/workflows/build.yml    CI: build + test + package (+ release)
+thunderstore/                  manifest.json, README.md, icon.png for the Thunderstore package
 ```

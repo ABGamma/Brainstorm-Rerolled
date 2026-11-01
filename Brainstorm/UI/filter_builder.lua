@@ -5,7 +5,7 @@
     "Joker in shop: Blueprint, ante 1, first 4 cards, Negative"
     "Tag: Charm Tag, ante 1, Small Blind"
   Any number of filters are saved in Brainstorm.config.filters; one of them
-  is "active" (chosen in Settings > Brainstorm, or with "Use" below), and
+  is "active" (chosen in Settings > Brainstorm-Rerolled, or with "Use" below), and
   that one is sent to the native search as text (Brainstorm.FB.spec()). The
   text format and the exact meaning of every condition are documented in
   Immolate/src/filterprog.hpp; this file only builds that text.
