@@ -2,3 +2,8 @@ style_guide.md
 Debug/
 config.lua
 .vscode
+
+# Native libraries are built by CI (.github/workflows/build.yml)
+Immolate.dll
+Immolate.dylib
+Immolate.so

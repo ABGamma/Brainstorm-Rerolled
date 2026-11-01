@@ -3,7 +3,10 @@ local nfs = require("nativefs")
 
 Brainstorm = {}
 
-Brainstorm.VERSION = "Brainstorm v2.2.0-alpha"
+-- The mod's version. Keep it equal to VERSION in steamodded_compat.lua: the
+-- release workflow (.github/workflows/build.yml) checks both and names the
+-- release after it.
+Brainstorm.VERSION = "2.0.0-alpha"
 
 Brainstorm.SMODS = nil
 
@@ -20,34 +23,24 @@ Brainstorm.config = {
     s_state = "z",
     l_state = "x",
   },
-  ar_filters = {
-    pack = {},
-    pack_id = 1,
-    voucher_name = "",
-    voucher_id = 1,
-    tag_name = "tag_charm",
-    tag_id = 2,
-    soul_skip = 1,
-    inst_observatory = false,
-    inst_perkeo = false,
-    copy_money = false,
-    bean = false,
-    burglar = false,
-    retcon = false,
-    custom_filter_name = "no_filter",
-    custom_filter_id = 1
-  },
-  ar_prefs = {
-    spf_id = 3,
-    spf_int = 1000,
-  },
+  -- Saved filters ({ active = n, list = { {name, assume_enhanced,
+  -- conditions}, ... } }); created and upgraded by
+  -- Brainstorm.FB.ensure_config() in UI/filter_builder.lua.
+  filters = nil,
 }
 
-Brainstorm.ar_timer = 0
-Brainstorm.ar_frames = 0
+-- Auto-reroll state.
+--   ar_job     handle of the running native search, or nil when idle
+--   ar_status  text shown on screen while searching (DynaText reads it
+--              every frame through ref_table/ref_value)
+--   ar_text    the on-screen text object, so it can be removed afterwards
+Brainstorm.ar_job = nil
+Brainstorm.ar_status = ""
 Brainstorm.ar_text = nil
-Brainstorm.ar_active = false
-Brainstorm.AR_INTERVAL = 0.01
+Brainstorm.ar_started_at = 0
+
+-- The native searcher wrapper; filled in by Brainstorm.init().
+Brainstorm.native = nil
 
 -- Cache frequently used functions
 local math_abs = math.abs
@@ -96,6 +89,20 @@ function Brainstorm.init()
   Brainstorm.PATH = findBrainstormDirectory(lovely.mod_dir)
   Brainstorm.loadConfig()
   assert(load(nfs.read(Brainstorm.PATH .. "/UI/ui.lua")))()
+  -- The in-game custom filter builder (Brainstorm.FB).
+  assert(load(nfs.read(Brainstorm.PATH .. "/UI/filter_builder.lua")))()
+  Brainstorm.FB.ensure_config()
+
+  -- Load the native searcher. If it fails (missing file, unsupported OS),
+  -- everything except auto-reroll keeps working.
+  Brainstorm.native = assert(load(nfs.read(Brainstorm.PATH .. "/Core/native.lua")))()
+  local ok, err = Brainstorm.native.load(Brainstorm.PATH)
+  if ok then
+    print("[Brainstorm] " .. Brainstorm.native.build_info())
+  else
+    Brainstorm.native_error = err
+    print("[Brainstorm] auto-reroll unavailable: " .. err)
+  end
 end
 
 local key_press_update_ref = Controller.key_press_update
@@ -105,22 +112,31 @@ function Controller:key_press_update(key, dt)
     for i, k in ipairs(saveKeys) do
         --  SaveState
         if key == k and love.keyboard.isDown(keybinds.s_state) then
-            if G.STAGE == G.STAGES.RUN then
+            -- G.ARGS.save_run is the game's latest autosave of this run; it
+            -- is nil until the first one (saving nil would crash).
+            if G.STAGE == G.STAGES.RUN and G.ARGS.save_run == nil then
+                saveManagerAlert("Nothing to save yet")
+            elseif G.STAGE == G.STAGES.RUN then
                 compress_and_save(G.SETTINGS.profile .. "/" .. "saveState" .. k .. ".jkr", G.ARGS.save_run)
                 saveManagerAlert("Saved state to slot [" .. k .. "]")
             end
         end
         --  LoadState
         if key == k and love.keyboard.isDown(keybinds.l_state) then
-            G:delete_run()
-            G.SAVED_GAME = get_compressed(G.SETTINGS.profile .. "/" .. "saveState" .. k .. ".jkr")
-            if G.SAVED_GAME ~= nil then
-                G.SAVED_GAME = STR_UNPACK(G.SAVED_GAME)
+            -- Read the slot before touching the current run: an empty slot
+            -- used to delete the run and start a new one (start_run with no
+            -- savetext means "new run").
+            local saved = get_compressed(G.SETTINGS.profile .. "/" .. "saveState" .. k .. ".jkr")
+            if saved == nil then
+                saveManagerAlert("Slot [" .. k .. "] is empty")
+            else
+                G:delete_run()
+                G.SAVED_GAME = STR_UNPACK(saved)
+                G:start_run({
+                    savetext = G.SAVED_GAME,
+                })
+                saveManagerAlert("Loaded save from slot [" .. k .. "]")
             end
-            G:start_run({
-                savetext = G.SAVED_GAME,
-            })
-            saveManagerAlert("Loaded save from slot [" .. k .. "]")
         end
     end
   
@@ -128,7 +144,12 @@ function Controller:key_press_update(key, dt)
         if key == keybinds.f_reroll then
             Brainstorm.reroll()
         elseif key == keybinds.a_reroll then
-            Brainstorm.ar_active = not Brainstorm.ar_active
+            -- Same key starts a search or cancels the running one.
+            if Brainstorm.ar_job then
+                Brainstorm.stopAutoReroll("Search cancelled")
+            else
+                Brainstorm.startAutoReroll()
+            end
         end
     end
 end
@@ -184,118 +205,123 @@ function Brainstorm.reroll()
   G:start_run({ stake = stake, seed = seed, challenge = G.challenge_tab })
 end
 
-local update_ref = Game.update
-function Game:update(dt)
-  update_ref(self, dt)
+-- ---------------------------------------------------------------------------
+-- Auto-reroll
+--
+-- The search runs in native background threads. The game keeps running
+-- normally; Game:update below checks on the search once per frame
+-- (Brainstorm.pollAutoReroll) and starts the run as soon as a seed is found.
+-- ---------------------------------------------------------------------------
 
-  if Brainstorm.ar_active then
-    Brainstorm.ar_frames = Brainstorm.ar_frames + 1
-    Brainstorm.ar_timer = Brainstorm.ar_timer + dt
+-- What native.start() needs: where to start, and the active filter.
+function Brainstorm.searchOptions()
+  return {
+    -- Start from a random point so repeated searches give different seeds.
+    start_seed = random_string(
+      8,
+      G.CONTROLLER.cursor_hover.T.x * 0.33411983
+        + G.CONTROLLER.cursor_hover.T.y * 0.874146
+        + 0.412311010 * G.CONTROLLER.cursor_hover.time
+    ),
+    -- The active saved filter as text ("" = none; see UI/filter_builder.lua).
+    filter_spec = Brainstorm.FB.spec(),
+  }
+end
 
-    if Brainstorm.ar_timer >= Brainstorm.AR_INTERVAL then
-      Brainstorm.ar_timer = Brainstorm.ar_timer - Brainstorm.AR_INTERVAL
-      if Brainstorm.autoReroll() then
-        Brainstorm.ar_active = false
-        Brainstorm.ar_frames = 0
-        if Brainstorm.ar_text then
-          Brainstorm.removeAttentionText(Brainstorm.ar_text)
-          Brainstorm.ar_text = nil
-        end
-      end
-    end
+-- "1234567" -> "1.2M"
+local function shortNumber(n)
+  if n >= 1e9 then
+    return string_format("%.1fB", n / 1e9)
+  elseif n >= 1e6 then
+    return string_format("%.1fM", n / 1e6)
+  elseif n >= 1e3 then
+    return string_format("%.0fK", n / 1e3)
+  end
+  return tostring(n)
+end
 
-    if Brainstorm.ar_frames == 60 and not Brainstorm.ar_text then
-      Brainstorm.ar_text = Brainstorm.attentionText({
-        scale = 1.4,
-        text = "Rerolling...",
-        align = "cm",
-        offset = { x = 0, y = -3.5 },
-        major = G.STAGE == G.STAGES.RUN and G.play or G.title_top,
-      })
-    end
+function Brainstorm.startAutoReroll()
+  if not Brainstorm.native or not Brainstorm.native.lib then
+    saveManagerAlert("Auto-reroll unavailable: " .. tostring(Brainstorm.native_error))
+    return
+  end
+  local opts = Brainstorm.searchOptions()
+  local job, err = Brainstorm.native.start(opts)
+  if not job then
+    saveManagerAlert("Search failed: " .. tostring(err))
+    return
+  end
+  Brainstorm.ar_job = job
+  Brainstorm.ar_opts = opts
+  Brainstorm.ar_started_at = love.timer.getTime()
+  Brainstorm.ar_status = "Searching..."
+  Brainstorm.ar_text = Brainstorm.attentionText({
+    scale = 1.0,
+    text = { { ref_table = Brainstorm, ref_value = "ar_status" } },
+    align = "cm",
+    offset = { x = 0, y = -3.5 },
+    major = G.STAGE == G.STAGES.RUN and G.play or G.title_top,
+  })
+end
+
+-- Ends the current search (if any) and removes the on-screen text.
+function Brainstorm.stopAutoReroll(message)
+  if Brainstorm.ar_job then
+    Brainstorm.native.free(Brainstorm.ar_job)
+    Brainstorm.ar_job = nil
+  end
+  if Brainstorm.ar_text then
+    Brainstorm.removeAttentionText(Brainstorm.ar_text)
+    Brainstorm.ar_text = nil
+  end
+  if message then
+    saveManagerAlert(message)
   end
 end
 
-function Brainstorm.autoReroll()
-  local seed_found = random_string(
-    8,
-    G.CONTROLLER.cursor_hover.T.x * 0.33411983
-      + G.CONTROLLER.cursor_hover.T.y * 0.874146
-      + 0.412311010 * G.CONTROLLER.cursor_hover.time
-  )
-  local ffi = require("ffi")
-  local lovely = require("lovely")
-  ffi.cdef([[
-	const char* brainstorm(const char* seed, const char* voucher, const char* pack, const char* tag, double souls, bool observatory, bool perkeo, bool copymoney, bool retcon, bool bean, bool burglar, const char* customFilter);
-    ]])
-  local immolate = ffi.load(Brainstorm.PATH .. "/Immolate.dll")
-  local pack
-  if #Brainstorm.config.ar_filters.pack > 0 then
-    pack = Brainstorm.config.ar_filters.pack[1]:match("^(.*)_")
-  else
-    pack = {}
-  end
-  local pack_name = localize({ type = "name_text", set = "Other", key = pack })
-  local tag_name = localize({
-    type = "name_text",
-    set = "Tag",
-    key = Brainstorm.config.ar_filters.tag_name,
-  })
-  local voucher_name = localize({
-    type = "name_text",
-    set = "Voucher",
-    key = Brainstorm.config.ar_filters.voucher_name,
-  })
-  --local custom_filter_name = localize({
-  --    type = "name_text",
-  --    set = "Other",
-  --    key = Brainstorm.config.ar_filters.custom_filter_name
-  --})
-  print(pack_name, tag_name, voucher_name)--, custom_filter_name)
-  seed_found = ffi.string(
-    immolate.brainstorm(
-      seed_found,
-      voucher_name,
-      pack_name,
-      tag_name,
-      Brainstorm.config.ar_filters.soul_skip,
-      Brainstorm.config.ar_filters.inst_observatory,
-      Brainstorm.config.ar_filters.inst_perkeo,
-      Brainstorm.config.ar_filters.copy_money,
-      Brainstorm.config.ar_filters.retcon,
-      Brainstorm.config.ar_filters.bean,
-      Brainstorm.config.ar_filters.burglar,
-      Brainstorm.config.ar_filters.custom_filter_name
+-- Called every frame while a search is running.
+function Brainstorm.pollAutoReroll()
+  local status, seed, checked = Brainstorm.native.poll(Brainstorm.ar_job)
+  if status == "running" then
+    local elapsed = love.timer.getTime() - Brainstorm.ar_started_at
+    local rate = elapsed > 0 and checked / elapsed or 0
+    Brainstorm.ar_status = string_format(
+      "Searching... %s seeds (%s/s)",
+      shortNumber(checked),
+      shortNumber(math.floor(rate))
     )
-  )
-  if seed_found then
-    _stake = G.GAME.stake
-    G:delete_run()
-    G:start_run({
-      stake = _stake,
-      seed = seed_found,
-      challenge = G.GAME and G.GAME.challenge and G.GAME.challenge_tab,
-    })
-    G.GAME.used_filter = true
-    G.GAME.filter_info = {
-      filter_params = {
-        seed_found,
-        voucher_name,
-        pack_name,
-        tag_name,
-        Brainstorm.config.ar_filters.soul_skip,
-        Brainstorm.config.ar_filters.inst_observatory,
-        Brainstorm.config.ar_filters.inst_perkeo,
-        Brainstorm.config.ar_filters.copy_money,
-        Brainstorm.config.ar_filters.retcon,
-        Brainstorm.config.ar_filters.bean,
-        Brainstorm.config.ar_filters.burglar,
-        custom_filter_name
-      },
-    }
-    G.GAME.seeded = false
+  elseif status == "found" then
+    Brainstorm.stopAutoReroll()
+    Brainstorm.startFoundRun(seed)
+  elseif status == "exhausted" then
+    Brainstorm.stopAutoReroll("No seed matches these filters")
+  else
+    Brainstorm.stopAutoReroll("Search stopped (" .. status .. ")")
   end
-  return seed_found
+end
+
+-- Starts a new run on the seed the search found.
+function Brainstorm.startFoundRun(seed)
+  local stake = G.GAME.stake
+  G:delete_run()
+  G:start_run({
+    stake = stake,
+    seed = seed,
+    challenge = G.GAME and G.GAME.challenge and G.GAME.challenge_tab,
+  })
+  -- Marks the seed as "found by filter" (shown in blue on the run screen)
+  -- and makes the run count as unseeded, as it was before.
+  G.GAME.used_filter = true
+  G.GAME.filter_info = { seed = seed, filter_params = Brainstorm.ar_opts }
+  G.GAME.seeded = false
+end
+
+local update_ref = Game.update
+function Game:update(dt)
+  update_ref(self, dt)
+  if Brainstorm.ar_job then
+    Brainstorm.pollAutoReroll()
+  end
 end
 
 local cursr = create_UIBox_round_scores_row

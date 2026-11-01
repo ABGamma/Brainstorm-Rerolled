@@ -1578,9 +1578,10 @@ inline std::string itemToString(Item i) {
   case Item::TYPE_END:
     return "TYPE END";
   default:
-    std::cout << "ERROR; stringToItem found no items... contact dev"
-              << std::endl;
-    EXIT_FAILURE;
+    // ITEMS_END and other markers that aren't real items. (This used to
+    // print an error and then fall off the end of the function without
+    // returning anything: undefined behaviour.)
+    return "UNKNOWN";
   }
 }
 inline Item stringToItem(std::string i) {
@@ -3574,5 +3575,27 @@ constexpr inline std::array<Item, 28> BOSSES = {
     Item::The_Psychic,  Item::The_Serpent,   Item::The_Tooth,
     Item::The_Wall,     Item::The_Water,     Item::The_Wheel,
     Item::The_Window};
+
+// Minimum ante of each boss in BOSSES (same order), from the game's
+// G.P_BLINDS; 0 marks the five showdown ("final") bosses, which only appear
+// on antes 8, 16, ... Used by Instance::nextBoss.
+constexpr inline std::array<int, 28> BOSS_MIN_ANTE = {
+    2, 1, 3,          // The Arm, The Club, The Eye
+    0, 0, 0, 0, 0,    // Amber Acorn ... Violet Vessel (showdown)
+    2, 2, 1, 1, 1,    // The Fish, The Flint, The Goad, The Head, The Hook
+    2, 1, 2, 2, 2,    // The House, The Manacle, The Mark, The Mouth, The Needle
+    6, 1, 4, 1, 5,    // The Ox, The Pillar, The Plant, The Psychic, The Serpent
+    3, 2, 2, 2, 1};   // The Tooth, The Wall, The Water, The Wheel, The Window
+
+// Whether the game can pick `boss` as the boss blind of `ante`.
+inline bool bossPossible(Item boss, int ante) {
+  for (size_t i = 0; i < BOSSES.size(); i++) {
+    if (BOSSES[i] != boss) continue;
+    bool showdownAnte = ante >= 2 && ante % 8 == 0;
+    if (BOSS_MIN_ANTE[i] == 0) return showdownAnte;
+    return !showdownAnte && BOSS_MIN_ANTE[i] <= (ante < 1 ? 1 : ante);
+  }
+  return false;
+}
 
 #endif

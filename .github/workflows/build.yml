@@ -1,0 +1,131 @@
+# Builds the native searcher for every supported platform, runs the tests on
+# each, and packages a ready-to-install Brainstorm mod folder.
+#
+# Results: open the run on GitHub -> "Artifacts" -> Brainstorm.zip.
+#
+# Releases: tick "Publish a release" when starting the run. After everything
+# builds and passes its tests, the `release` job creates a GitHub release in
+# THIS repository named after the mod's version (Brainstorm.VERSION in
+# Brainstorm/Core/Brainstorm.lua, which must equal VERSION in
+# Brainstorm/steamodded_compat.lua), with Brainstorm.zip attached. It refuses
+# to overwrite an existing release: bump the version first.
+#
+# Cost: this workflow NEVER runs automatically. Start it by hand from the
+# Actions tab -> "build" -> "Run workflow". The repo is private, so runs
+# count against GitHub's free monthly minutes (macOS minutes count 10x);
+# one run uses roughly 60 of them. With the default $0 spending limit,
+# running out just pauses builds until next month; nothing is charged.
+# Day-to-day Windows builds can be done locally instead (see README).
+name: build
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish a release (version taken from Brainstorm.lua)"
+        type: boolean
+        default: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure (MSVC, static runtime)
+        run: cmake -S Immolate -B build -A x64
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Check the DLL has no Visual C++ runtime dependency
+        shell: bash
+        run: |
+          deps=$(dumpbin //dependents build/Release/Immolate.dll || true)
+          echo "$deps"
+          if echo "$deps" | grep -qiE "msvcp|vcruntime"; then
+            echo "Immolate.dll depends on the VC++ runtime"; exit 1
+          fi
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lib-windows
+          path: build/Release/Immolate.dll
+
+  macos:
+    runs-on: macos-latest # Apple Silicon runner
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure (universal arm64 + x86_64)
+        run: cmake -S Immolate -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Verify both architectures are present
+        run: lipo -info build/Immolate.dylib | tee /dev/stderr | grep -q "x86_64 arm64\|arm64 x86_64"
+      - name: Test (Apple Silicon)
+        run: ctest --test-dir build --output-on-failure
+      - name: Test (Intel, via Rosetta)
+        # Proves the x86_64 slice predicts exactly the same seeds.
+        run: |
+          softwareupdate --install-rosetta --agree-to-license || true
+          arch -x86_64 build/api_test
+          arch -x86_64 build/golden > golden_x86.txt
+          diff Immolate/tests/golden_expected.txt golden_x86.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lib-macos
+          path: build/Immolate.dylib
+
+  package:
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: libs
+      - name: Assemble mod folder
+        run: |
+          mkdir -p dist
+          cp -r Brainstorm dist/Brainstorm
+          rm -f dist/Brainstorm/Immolate.dll dist/Brainstorm/config.lua
+          cp libs/lib-windows/Immolate.dll dist/Brainstorm/
+          cp libs/lib-macos/Immolate.dylib dist/Brainstorm/
+          ls -la dist/Brainstorm
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Brainstorm
+          path: dist
+
+  release:
+    needs: package
+    if: ${{ inputs.release }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the tag and the release
+    steps:
+      - uses: actions/checkout@v7
+      - name: Read the mod version
+        id: version
+        run: |
+          lua=$(sed -n 's/^Brainstorm.VERSION = "\(.*\)"$/\1/p' Brainstorm/Core/Brainstorm.lua)
+          smods=$(sed -n 's/^--- VERSION: //p' Brainstorm/steamodded_compat.lua)
+          echo "Brainstorm.lua: '$lua'  steamodded_compat.lua: '$smods'"
+          if [ -z "$lua" ] || [ "$lua" != "$smods" ]; then
+            echo "::error::The two version numbers are missing or differ"; exit 1
+          fi
+          echo "tag=Brainstorm-Rerolled-$lua" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v8
+        with:
+          name: Brainstorm
+          path: dist
+      - name: Zip the mod folder
+        run: cd dist && zip -r ../Brainstorm.zip Brainstorm
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Release $TAG already exists; bump the version first"; exit 1
+          fi
+          gh release create "$TAG" Brainstorm.zip \
+            --target "$GITHUB_SHA" --title "$TAG" --prerelease --generate-notes

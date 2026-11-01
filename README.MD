@@ -1,76 +1,101 @@
 # Brainstorm Rerolled
-This is a fork of both [Brainstorm](https://github.com/OceanRamen/Brainstorm) created by [OceanRamen](https://github.com/OceanRamen) as well as [Immolate](https://github.com/SpectralPack/Immolate) please give credit to them as I have simply modified the hard work they did
 
-## Description
-This repository houses both the code for the brainstorm mod as well as the code for the C++ version of the Immolate seed finder. If you would like to create your own filters simply 
-add the code to the Immolate.cpp file, update the brainstorm endpoints to include whatever you need and then build it. This will generate a dll
-that you can then place in the mods folder of balatro. The brainstorm mod will automatically detect the dll and use it, though you will need to update the brainstorm.lua and ui.lua 
-in order to properly use your new options
+A [Balatro](https://www.playbalatro.com/) mod for finding seeds. Describe the run you want (a Charm Tag with The Soul, a Negative Blueprint in the first shop, Observatory by ante 2, ...) and auto-reroll searches millions of seeds per second in the background until it finds one.
 
-## READ THIS BEFORE USING THE MOD
+Built on [Brainstorm](https://github.com/OceanRamen/Brainstorm) by [OceanRamen](https://github.com/OceanRamen) and [Immolate](https://github.com/SpectralPack/Immolate) by SpectralPack. Please credit them; this project builds on their work.
 
-This mod utilizes an external DLL to perform the seed finding. This DLL is built from the Immolate C++ project in this repository. This comes with some performance gains but also some 
-oddities.  
+## Disclaimer
 
-1. The DLL will utilize 100% of your CPU if you have 12 or less cores
-1. The game will look frozen and unresponsive when searching for a seed. If you click on the game windows will say it is not responding
-1. Some filters can take hours to find a seed depending on your CPU and the filter selected. Please be patient
-1. Ensure you download Brainstorm.zip if all you want is the mod. The Immolate C++ code is only needed if you want to create custom filters and are familiar with C++
+Claude Code and Gemini were both used in some capacity for this project both as research helpers and coding assistants. I am making this project public since I think the end product is neat but please give all actual credit to the original authors mentioned above.
 
-## Requirements for Brainstorm
-- [Lovely](https://github.com/ethangreen-dev/lovely-injector) injector -- Get it here: https://github.com/ethangreen-dev/lovely-injector/releases
+
+## Features
+
+- **Auto-reroll**: `Ctrl + A` searches for a seed that matches your active filter and starts a run on it. The game stays responsive while it searches, showing how many seeds it has checked. Press `Ctrl + A` again to cancel.
+- **Filters built in game**: make named filters from conditions, save as many as you like, and pick the active one.
+- **Fast reroll**: `Ctrl + R` restarts the run on a new random seed.
+- **Save states**: hold `Z` and press `1`–`5` to save the current run to a slot; hold `X` and press `1`–`5` to load it.
 
 ## Installation
 
-1. Install [Lovely](https://github.com/ethangreen-dev/lovely-injector) and follow the manual installation instructions.
+1. Install [Lovely](https://github.com/ethangreen-dev/lovely-injector/releases), following its instructions for your system.
+2. Download `Brainstorm.zip` from the [latest release](https://github.com/ABGamma/Brainstorm-Rerolled/releases) and unzip it.
+3. Move the `Brainstorm` folder into your Balatro mods folder:
 
-### Windows
+   | System | Mods folder |
+   |---|---|
+   | Windows | `%AppData%\Balatro\Mods` |
+   | Linux / Steam Deck (Proton) | `~/.local/share/Steam/steamapps/compatdata/2379780/pfx/drive_c/users/steamuser/AppData/Roaming/Balatro/Mods` |
+   | macOS | `~/Library/Application Support/Balatro/Mods` |
 
-2. Download the [latest release](https://github.com/ABGamma/Brainstorm-Rerolled/releases) of Brainstorm-Rerolled.
-3. Unzip the file, and place it in `.../%appdata%/balatro/mods` 
-4. Reload the game to activate the mod.
+4. **macOS only:** macOS sometimes blocks code downloaded from the internet until you allow it. Run this once in Terminal (it is fine if it prints "No such xattr": the file was not blocked):
 
-## Features
-### Save-States
-Brainstorm-Rerolled has the capability to save up to 5 save-states through the use of in-game key binds. 
-> To create a save-state: Hold `z + 1-5`
-> To load a save-state:	Hold `x + 1-5`
+   ```
+   xattr -d com.apple.quarantine ~/Library/Application\ Support/Balatro/Mods/Brainstorm/Immolate.dylib
+   ```
 
-Each number from 0 - 5 corresponds to a save slot. To overwrite an old save, simply create a new save-state in it's slot. 
+5. Start the game. Brainstorm adds a **Brainstorm** tab to the settings menu.
 
-### Fast Rerolling
-Brainstorm allows for super-fast rerolling through the use of an in-game key bind. 
-> To fast-roll:	Press `Ctrl + r`
+Supported: Windows, Linux and Steam Deck through Proton, and macOS (Apple Silicon and Intel). Searching needs no extra software: everything runs on the CPU.
 
-### Auto-Rerolling
-Brainstorm can automatically reroll for parameters as specified by the user.
-You can edit the Auto-Reroll parameters in the Brainstorm in-game settings page.
-> To Auto-Reroll:	Press `Ctrl + a`
+## Filters
 
-### Various Filters
-In addition to the original filters from brainstorm I have added a few more filters that can help facilitate Crimson Bean or simply an easy early game  
+Open **Settings → Brainstorm → EDIT FILTERS**. A filter is a list of conditions, and a seed matches only if **every** condition is true. Choose which filter auto-reroll uses with **ACTIVE FILTER** in the same tab.
 
-ANTE 8 BEAN: This ensures you get a Turtle Bean within the first 150 items in the shop  
-LATE BURGLAR: This ensures there is a burglar within the first 50-150 cards in the ante 6, 7, or 8 shop  
-RETCON: This ensures that the retcon voucher appears before or in ante 8  
-EARLY COPY + MONEY: This ensures that between the shop and the packs in ante 1 you get a brainstorm, blueprint, and some form of money generation
+<p align="center"><img src="docs/images/settings-tab.png" alt="The Brainstorm settings tab: ACTIVE FILTER and EDIT FILTERS" width="600"></p>
 
-### Custom Filtering
-I have added some basic code and an example to go off of to create custom filters. I have set it up so that custom filters will override any other selected filter to avoid crashes. If you want to use
-the mod as originally created simply keep the custom filters set to "No Filter". If you want to create your own custom filters you will need to edit immolate.cpp and immolate.hpp to add your custom filter similar to how I added the "Negative Blueprint" filter
-once added there you can build it and then copy the resulting dll into the brainstorm mod folder. Then you need to update the ui.lua and brainstorm.lua too add your new filter to the list.
+Save as many filters as you like, and edit, delete or switch between them:
 
-#### Adding Custom Filters
-1. Open immolate.hpp
-	1. Add the name of your new filter to `enum class customFilters`
-	1. Add a new case in `inline std::string filterToString(customFilters f)` for your new filter
-	1. add a new if statement in `inline customFilters stringToFilter(std::string i)` for your new filter
-1. Open immolate.cpp
-	1. Add a new case in the switch statement for your filter to `long filter(Instance inst)`
-	1. Add corresponding code inside of that case for your custom filter
-1. Save and build the C++ code and copy the resulting dll into the brainstorm mod folder
-1. Open ui.lua
-	1. Add a new entry to the `local custom_filter_list` corresponding to your new filter
-	1. Add a new entry to the `local custom_filter_keys` corresponding to your new filter
-1. Save ui.lua and run the game
-1. Your new filter should now be usable in the brainstorm settings
+<p align="center"><img src="docs/images/filters-list.png" alt="The list of saved filters" width="480"></p>
+
+| Condition | Example |
+|---|---|
+| Tag | Charm Tag on the ante 1 Small Blind |
+| Voucher | Observatory in the ante 2 shop |
+| Booster pack | Mega Arcana Pack among the first 2 packs of ante 1 |
+| Joker in shop | Negative Blueprint among the first 4 shop cards of ante 1 |
+| Soul in Arcana pack | The Soul in a Mega Arcana pack, giving Perkeo |
+| Boss blind | Crimson Heart as the ante 8 boss |
+
+Every condition applies to one ante or a range of antes ("Burglar anywhere in antes 6–8"). For example, this filter asks for a Turtle Bean in ante 8, a Burglar in ante 7 or 8, Crimson Heart as the ante 8 boss, and a Negative Blueprint early in ante 2:
+
+<p align="center"><img src="docs/images/edit-filter.png" alt="Editing a filter with four conditions" width="600"></p>
+
+Each condition has its own options. Jokers are picked from a card grid like the Collection screen:
+
+<p align="center">
+  <img src="docs/images/edit-condition.png" alt="Editing a condition: Negative Blueprint within the first 8 shop cards of ante 2" width="300">
+  &nbsp;
+  <img src="docs/images/joker-picker.png" alt="The joker picker: a grid of joker cards with pages" width="400">
+</p>
+
+Good to know:
+
+- **Vouchers** in later antes assume you bought the vouchers of earlier antes (an upgraded voucher only appears after its base voucher).
+- **Shop cards** count 2 per shop plus 2 per reroll.
+- **Boss blinds** assume you never reroll the boss: Director's Cut, Retcon and the Boss Tag change that ante's boss and every later one.
+- **Steel Joker, Stone Joker, Lucky Cat, Golden Ticket and Glass Joker** only appear once your deck has a card with that enhancement. To search for them, turn on **Assume 1 of each enhanced card** for the filter. If you never get those cards, about 1 in 55 common/uncommon shop jokers can differ from the prediction.
+- Very specific filters can take a long time to find a seed. The search shows its progress and can be cancelled at any time.
+
+Two starter filters are included: **Charm + Soul** and **Charm + Soul + Observatory**.
+
+## For developers
+
+The repository holds the mod (`Brainstorm/`, Lua) and the seed searcher it uses (`Immolate/`, C++), which is built into `Immolate.dll` (Windows) or `Immolate.dylib` (macOS). **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** explains how everything fits together: the C API, the search threads, the filter format, the performance work and the tests.
+
+Building:
+
+- **GitHub Actions** builds and tests on Windows and macOS when started by hand (Actions → build → Run workflow), and attaches a ready-to-install `Brainstorm` folder to the run.
+- **Locally**: `Immolate/build.sh` (macOS/Linux) or `Immolate\build.bat` (Windows, from the *x64 Native Tools Command Prompt for VS 2022*).
+- **Windows DLL from Linux** (needs MinGW-w64 and Wine):
+
+  ```
+  cd Immolate
+  cmake -B build-win -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-w64.cmake
+  cmake --build build-win --parallel
+  ctest --test-dir build-win --output-on-failure   # runs the tests through Wine
+  ```
+
+## License
+
+Immolate is licensed under [CC BY-NC-SA 4.0](Immolate/LICENSE).

@@ -606,34 +606,49 @@ inline Item Instance::nextTag(int ante) {
   return randchoice(RandomType::Tags + anteToString(ante), TAGS);
 }
 
+// The boss blind the game picks when the run reaches `ante`. Call it once
+// per ante, in order (1, 2, 3, ...): every call draws from the one "boss"
+// stream, and the result depends on the bosses chosen before it. A Director's
+// Cut / Retcon reroll is one more call with the same ante.
+//
+// This follows get_new_boss() in the game's functions/common_events.lua:
+//  1. Eligible bosses: on antes 8, 16, ... only the five showdown ("final")
+//     bosses; on other antes the regular bosses whose minimum ante has been
+//     reached (BOSS_MIN_ANTE in items.hpp, from the game's G.P_BLINDS).
+//  2. Of those, keep only the least-used ones (bossesUsed), so a boss can't
+//     repeat until every other eligible boss has been seen as often.
+//  3. Pick one at random from what's left, sorted by game key
+//     ("bl_arm" < "bl_club" < ...), which is the order of BOSSES.
+//
+// (The original version filled a 28-slot array only partly and then picked
+// from all 28 slots, reading uninitialised memory.
+// It also didn't take boss minimum antes into account.)
 inline Item Instance::nextBoss(int ante) {
-  constexpr int MAX_BOSSES =
-      28; // Adjust this value based on the maximum number of bosses you expect
-  std::array<Item, MAX_BOSSES> bossPool;
-  int numBosses = 0;
 
-  for (unsigned long int i = 0; i < BOSSES.size(); i++) {
-    if (!isLocked(BOSSES[i])) {
-      if ((ante % 8 == 0 && BOSSES[i] > Item::B_F_BEGIN) ||
-          (ante % 8 != 0 && BOSSES[i] < Item::B_F_BEGIN)) {
-        bossPool[numBosses++] = BOSSES[i];
-      }
-    }
+  int level = ante < 1 ? 1 : ante;          // the game's math.max(1, ante)
+  bool showdown = ante >= 2 && ante % 8 == 0;
+  bool eligible[28];
+  int minUsed = 255;
+  for (int i = 0; i < 28; i++) {
+    bool isShowdown = BOSS_MIN_ANTE[i] == 0;
+    eligible[i] = showdown ? isShowdown
+                           : !isShowdown && BOSS_MIN_ANTE[i] <= level;
+    if (eligible[i] && bossesUsed[i] < minUsed) minUsed = bossesUsed[i];
   }
 
-  if (numBosses == 0) {
-    for (unsigned long int i = 0; i < BOSSES.size(); i++) {
-      if ((ante % 8 == 0 && BOSSES[i] > Item::B_F_BEGIN) ||
-          (ante % 8 != 0 && BOSSES[i] < Item::B_F_BEGIN)) {
-        unlock(BOSSES[i]);
-      }
+  Item pool[28];
+  int poolIndex[28];
+  int n = 0;
+  for (int i = 0; i < 28; i++) {
+    if (eligible[i] && bossesUsed[i] == minUsed) {
+      poolIndex[n] = i;
+      pool[n++] = BOSSES[i];
     }
-    return nextBoss(ante);
   }
-
-  Item chosenBoss = randchoice("boss", bossPool);
-  lock(chosenBoss);
-  return chosenBoss;
+  // pseudorandom_element: math.random(#keys), i.e. a uniform index.
+  int pick = luaRandint(get_node("boss"), 0, n - 1);
+  bossesUsed[poolIndex[pick]]++;
+  return pool[pick];
 }
 
 #endif
