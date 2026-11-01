@@ -1,0 +1,5 @@
+# The golden test compares output byte-for-byte; keep LF line endings on
+# every platform (Windows git would otherwise convert to CRLF).
+Immolate/tests/golden_expected.txt text eol=lf
+*.dll binary
+*.dylib binary

@@ -22,6 +22,58 @@ LuaRandom::LuaRandom(double seed) {
 
 LuaRandom::LuaRandom() { LuaRandom(0); }
 
+namespace {
+// One LuaRandom update step of state component c (see _randint below).
+uint64_t luaStep(int c, uint64_t z) {
+  switch (c) {
+  case 0: return (((z << 31) ^ z) >> 45) ^ ((z & (MAX_UINT64 << 1)) << 18);
+  case 1: return (((z << 19) ^ z) >> 30) ^ ((z & (MAX_UINT64 << 6)) << 28);
+  case 2: return (((z << 24) ^ z) >> 48) ^ ((z & (MAX_UINT64 << 9)) << 7);
+  default: return (((z << 21) ^ z) >> 39) ^ ((z & (MAX_UINT64 << 17)) << 8);
+  }
+}
+
+// TOP16[c][p][v]: bits 51..36 (the top 16 bits of random()'s mantissa) that
+// byte p of state component c contributes when it holds the value v, after
+// 11 steps. Because the steps are linear, the contributions of all 32 bytes
+// simply XOR together. 16 KB, built once when the library loads.
+struct Top16Table {
+  uint16_t t[4][8][256];
+  Top16Table() {
+    for (int c = 0; c < 4; c++)
+      for (int p = 0; p < 8; p++)
+        for (int v = 0; v < 256; v++) {
+          uint64_t z = (uint64_t)v << (8 * p);
+          for (int i = 0; i < 11; i++) z = luaStep(c, z);
+          t[c][p][v] = (uint16_t)(z >> 36);
+        }
+  }
+};
+const Top16Table TOP16;
+} // namespace
+
+uint32_t luaRandomTop16(double seed) {
+  // Exactly the start of LuaRandom::LuaRandom: four states from `seed`.
+  double d = seed;
+  uint64_t r = 0x11090601;
+  uint32_t out = 0;
+  for (int i = 0; i < 4; i++) {
+    uint64_t m = 1ull << (r & 255);
+    r >>= 8;
+    d = d * 3.14159265358979323846 + 2.7182818284590452354;
+    uint64_t u;
+    std::memcpy(&u, &d, sizeof u);
+    if (u < m)
+      u += m;
+    // Written out (not a loop) so the compiler emits straight-line code.
+    const uint16_t(*t)[256] = TOP16.t[i];
+    out ^= t[0][u & 255] ^ t[1][(u >> 8) & 255] ^ t[2][(u >> 16) & 255] ^
+           t[3][(u >> 24) & 255] ^ t[4][(u >> 32) & 255] ^
+           t[5][(u >> 40) & 255] ^ t[6][(u >> 48) & 255] ^ t[7][u >> 56];
+  }
+  return out;
+}
+
 uint64_t LuaRandom::_randint() {
   uint64_t z = 0;
   uint64_t r = 0;
@@ -101,6 +153,14 @@ int portable_clzll(uint64_t x) {
 }
 
 double fract(double x) {
+  // Fast path (performance): for 0 <= x < 2^52, x - trunc(x) is exactly the
+  // fractional part, and truncating to an integer is one cheap instruction.
+  // Negative, huge, infinite and NaN inputs use the original code below.
+  // tests/math_test.cpp checks this against the original bit for bit.
+  if (x >= 0.0 && x < 4503599627370496.0) {
+    return x - (double)(int64_t)x;
+  }
+
   uint64_t x_int;
 
   std::memcpy(&x_int, &x, sizeof(x_int));
@@ -131,25 +191,25 @@ double fract(double x) {
   return result;
 }
 
-double pseudohash(std::string s) {
+double pseudohash(const std::string &s) {
   double num = 1;
   for (size_t i = s.length(); i > 0; i--) {
-    num = fract(1.1239285023 / num * s[i - 1] * 3.141592653589793116 +
+    num = fractFast(1.1239285023 / num * s[i - 1] * 3.141592653589793116 +
                 3.141592653589793116 * i);
   }
   return num;
 }
 
-double pseudohash_from(std::string s, double num) {
+double pseudohash_from(const std::string &s, double num) {
   for (size_t i = s.length(); i > 0; i--) {
-    num = fract(1.1239285023 / num * s[i - 1] * 3.141592653589793116 +
+    num = fractFast(1.1239285023 / num * s[i - 1] * 3.141592653589793116 +
                 3.141592653589793116 * i);
   }
   return num;
 }
 
 double pseudostep(char s, int pos, double num) {
-  return fract(1.1239285023 / num * s * 3.141592653589793116 +
+  return fractFast(1.1239285023 / num * s * 3.141592653589793116 +
                3.141592653589793116 * pos);
 }
 
@@ -165,6 +225,27 @@ const double two_inv_prec = std::pow(2.0, 13);
 const double five_inv_prec = std::pow(5.0, 13);
 
 double round13(double x) {
+  // Fast path (performance). Rounding x*10^13 is only ambiguous when its
+  // fractional part is very close to .5; the original code below detects
+  // that by also rounding the next-smaller double, which can move x*10^13
+  // by at most ~0.002 for x < 1 (one ulp of x is <= 1.1e-16, times 10^13,
+  // plus the rounding of x * 10^13 itself). When the fractional part is
+  // clearly away from .5 (by 0.01, five times that), the rounding is
+  // unambiguous, so we return the same value the original would, with the
+  // same division.
+  // The hot path (Instance::advance_node) uses the branch-free inline copy
+  // of this, round13Fast in util.hpp; this one handles everything else.
+  // tests/math_test.cpp checks this against the original bit for bit.
+  // (x > 0, not >= 0: for -0.0 the original returns -0.0, and the integer
+  // conversion below would lose the sign. math_test caught this.)
+  if (x > 0.0 && x < 1.0) {
+    double y = x * inv_prec;
+    double whole = (double)(int64_t)y; // y < 10^13, so this is floor(y)
+    double frac = y - whole;
+    if (frac < 0.49 || frac > 0.51)
+      return (whole + (frac > 0.5 ? 1.0 : 0.0)) / inv_prec;
+  }
+
   double normal_case = std::round(x * inv_prec) / inv_prec;
   if (normal_case ==
       (std::round(std::nextafter(x, -1) * inv_prec) / inv_prec)) {

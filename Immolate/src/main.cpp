@@ -86,24 +86,13 @@ long filter(Instance inst) {
 };
 
 
-//Currently filtering for bosses does not seem to work
+// Crimson Heart as the ante 8 boss. Bosses must be drawn in ante order:
+// each pick depends on the ones before it (see nextBoss in functions.hpp).
 long filter_crimson_heart(Instance inst) {
-    inst.initLocks(1, false, true);
-	printf("Checking for Crimson Heart...\n");
-	inst.nextBoss(1);
-    printf("Boss: %s\n");
-    for (int i = 2; i < 8; i++) {
-        if (i < 7) {
-            //inst.initUnlocks(i, false);
-        }
-        inst.nextBoss(i);
-        printf("Boss: %s\n");
+    for (int ante = 1; ante < 8; ante++) {
+        inst.nextBoss(ante);
     }
-	
-	if(inst.nextBoss(8) != Item::Crimson_Heart) {
-        return 0;
-    }
-	return 1;
+    return inst.nextBoss(8) == Item::Crimson_Heart ? 1 : 0;
 }
 
 long filter_retcon(Instance inst) {

@@ -16,3 +16,4 @@ build_linux
 /.vs/VSWorkspaceState.json
 /CppProperties.json
 /.vs
+build-*
