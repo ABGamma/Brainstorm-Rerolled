@@ -47,12 +47,18 @@ local math_abs = math.abs
 local string_format = string.format
 local string_lower = string.lower
 
+-- This mod's folder inside the Mods folder. Its name varies:
+-- "Brainstorm-Rerolled" for a manual install (or "Brainstorm" from older
+-- versions), "ABGamma-Brainstorm_Rerolled" or similar from a mod
+-- manager. Checking for Core/native.lua skips other mods with "brainstorm"
+-- in their folder name (e.g. the original Brainstorm).
 local function findBrainstormDirectory(directory)
   for _, item in ipairs(nfs.getDirectoryItems(directory)) do
     local itemPath = directory .. "/" .. item
     if
       nfs.getInfo(itemPath, "directory")
       and string_lower(item):find("brainstorm")
+      and nfs.getInfo(itemPath .. "/Core/native.lua")
     then
       return itemPath
     end
@@ -98,10 +104,10 @@ function Brainstorm.init()
   Brainstorm.native = assert(load(nfs.read(Brainstorm.PATH .. "/Core/native.lua")))()
   local ok, err = Brainstorm.native.load(Brainstorm.PATH)
   if ok then
-    print("[Brainstorm] " .. Brainstorm.native.build_info())
+    print("[Brainstorm-Rerolled] " .. Brainstorm.native.build_info())
   else
     Brainstorm.native_error = err
-    print("[Brainstorm] auto-reroll unavailable: " .. err)
+    print("[Brainstorm-Rerolled] auto-reroll unavailable: " .. err)
   end
 end
 

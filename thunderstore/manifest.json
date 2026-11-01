@@ -1,0 +1,7 @@
+{
+    "name": "Brainstorm_Rerolled",
+    "version_number": "2.0.0",
+    "website_url": "https://github.com/ABGamma/Brainstorm-Rerolled",
+    "description": "Seed finder: build filters in game (tags, vouchers, packs, shop jokers, The Soul, boss blinds, any ante) and auto-reroll searches millions of seeds per second in the background. Windows, Steam Deck, macOS.",
+    "dependencies": ["Thunderstore-lovely-0.10.0"]
+}

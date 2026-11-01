@@ -19,8 +19,8 @@ Claude Code and Gemini were both used in some capacity for this project both as 
 ## Installation
 
 1. Install [Lovely](https://github.com/ethangreen-dev/lovely-injector/releases), following its instructions for your system.
-2. Download `Brainstorm.zip` from the [latest release](https://github.com/ABGamma/Brainstorm-Rerolled/releases) and unzip it.
-3. Move the `Brainstorm` folder into your Balatro mods folder:
+2. Download `Brainstorm-Rerolled.zip` from the [latest release](https://github.com/ABGamma/Brainstorm-Rerolled/releases) and unzip it.
+3. Move the `Brainstorm-Rerolled` folder into your Balatro mods folder:
 
    | System | Mods folder |
    |---|---|
@@ -31,18 +31,18 @@ Claude Code and Gemini were both used in some capacity for this project both as 
 4. **macOS only:** macOS sometimes blocks code downloaded from the internet until you allow it. Run this once in Terminal (it is fine if it prints "No such xattr": the file was not blocked):
 
    ```
-   xattr -d com.apple.quarantine ~/Library/Application\ Support/Balatro/Mods/Brainstorm/Immolate.dylib
+   xattr -d com.apple.quarantine ~/Library/Application\ Support/Balatro/Mods/Brainstorm-Rerolled/Immolate.dylib
    ```
 
-5. Start the game. Brainstorm adds a **Brainstorm** tab to the settings menu.
+5. Start the game. Brainstorm-Rerolled adds a **Brainstorm-Rerolled** tab to the settings menu.
 
 Supported: Windows, Linux and Steam Deck through Proton, and macOS (Apple Silicon and Intel). Searching needs no extra software: everything runs on the CPU.
 
 ## Filters
 
-Open **Settings → Brainstorm → EDIT FILTERS**. A filter is a list of conditions, and a seed matches only if **every** condition is true. Choose which filter auto-reroll uses with **ACTIVE FILTER** in the same tab.
+Open **Settings → Brainstorm-Rerolled → EDIT FILTERS**. A filter is a list of conditions, and a seed matches only if **every** condition is true. Choose which filter auto-reroll uses with **ACTIVE FILTER** in the same tab.
 
-<p align="center"><img src="docs/images/settings-tab.png" alt="The Brainstorm settings tab: ACTIVE FILTER and EDIT FILTERS" width="600"></p>
+<p align="center"><img src="docs/images/settings-tab.png" alt="The Brainstorm-Rerolled settings tab: ACTIVE FILTER and EDIT FILTERS" width="600"></p>
 
 Save as many filters as you like, and edit, delete or switch between them:
 
@@ -85,7 +85,7 @@ The repository holds the mod (`Brainstorm/`, Lua) and the seed searcher it uses 
 
 Building:
 
-- **GitHub Actions** builds and tests on Windows and macOS when started by hand (Actions → build → Run workflow), and attaches a ready-to-install `Brainstorm` folder to the run.
+- **GitHub Actions** builds and tests on Windows and macOS when started by hand (Actions → build → Run workflow), and attaches a ready-to-install `Brainstorm-Rerolled` folder to the run, plus a Thunderstore package built from `thunderstore/` (manifest, Thunderstore page and icon). Ticking "Publish a release" also creates a GitHub release with both.
 - **Locally**: `Immolate/build.sh` (macOS/Linux) or `Immolate\build.bat` (Windows, from the *x64 Native Tools Command Prompt for VS 2022*).
 - **Windows DLL from Linux** (needs MinGW-w64 and Wine):
 
