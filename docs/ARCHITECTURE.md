@@ -1,7 +1,8 @@
 # How Brainstorm Rerolled works
 
-This document walks through the whole system, from pressing **Ctrl+A** to a
-new run starting on a matching seed. Read it top to bottom once; afterwards
+This document walks through the whole system, from pressing **Ctrl+A** (the
+default auto-reroll key; every key can be changed in the Hotkeys sub-tab) to
+a new run starting on a matching seed. Read it top to bottom once; afterwards
 the section headings work as a reference.
 
 - [1. The big picture](#1-the-big-picture)
@@ -115,7 +116,15 @@ and calls `Brainstorm.init()` once the game has loaded its profile.
   UI, then loads `Core/native.lua` and asks it to load the native library. If
   that fails (e.g. a missing file), it prints why and the rest of the mod
   (save states, fast reroll) keeps working.
-- **Ctrl+A** calls `startAutoReroll()` or, when a search is running,
+- `key_press_update` (hooked) handles the hotkeys. All of them are stored in
+  `Brainstorm.config.keybinds` and are pressed together with the modifier
+  key (`modifier`, default left Ctrl). Defaults: **A** auto-reroll, **R**
+  fast reroll, **T** open the Brainstorm-Rerolled settings tab, **S** save the
+  current seed, **Z** / **X** save / load a save state (with a number 1-5 for
+  the slot). While the Hotkeys sub-tab waits for a new key
+  (`Brainstorm.ST.capturing`), every key press goes to `ST.capture(key)`
+  instead.
+- The auto-reroll key calls `startAutoReroll()` or, when a search is running,
   `stopAutoReroll("Search cancelled")`.
 - `searchOptions()` turns the settings menu into a plain table:
   `{ tag = "tag_charm", voucher = "v_telescope", pack = "p_arcana_mega", souls = 1, ... }`.
@@ -136,11 +145,58 @@ The only file that touches the FFI.
    `brainstorm_api.h`, and **the two must match exactly**. A mismatch is
    detected at load time through `bs_api_version()`.
 2. `native.load(path)` picks `Immolate.dll` on Windows (including Proton) or
-   `Immolate.dylib` on macOS, based on LuaJIT's `ffi.os`.
+   `Immolate.dylib` on macOS, based on LuaJIT's `ffi.os`. Android's LuaJIT
+   says "Linux" too, so Android is recognised with `love.system.getOS()`
+   and loads `Immolate-android-arm64.so` (64-bit ARM only). Should Android
+   refuse to load it where it is, it is copied to LÖVE's save folder (the
+   game's private folder) and loaded from there. With Lovely Mobile Maker
+   builds the Mods folder is already inside the game's private folder, and
+   the library loads where it is.
 3. `native.start/poll/cancel/free` are thin wrappers. `start` attaches
    `ffi.gc(job, bs_search_free)` so that even a forgotten job is cleaned up
    when Lua garbage-collects it; `free` removes that hook first so the job is
    never freed twice.
+
+### `Brainstorm/UI/settings.lua` (the settings tab)
+Settings > Brainstorm-Rerolled (added by `UI/ui.lua`) shows `Brainstorm.ST.tab()`:
+a row of four sub-tab buttons over a box of fixed size, so nothing shifts
+when switching. `ST.show(sub)` swaps the box's contents in place (the object
+in the `bs_st_body` node), the same way `FB.go` swaps filter screens.
+- **Filters**: the saved filter list from `FB.list_rows()`.
+- **Saved seeds**: `Brainstorm.config.saved_seeds = { list = { {seed, note},
+  ... }, deck, stake }`, newest first, at most 100, 5 per page.
+  `ST.save_current_seed()` (hotkey or button, only during a run) adds the
+  current seed unless it is already saved. Each seed has a note text box.
+  Balatro draws only one text box per UIBox (each takes `draw_layer` 1 and 2
+  and a UIBox keeps one node per layer), so every note box is wrapped in its
+  own UIBox. The config is written when typing ends. `ST.play(i)` starts the
+  seed with the deck and stake chosen in the two cyclers above the list.
+  These are shared by all seeds, not stored per seed. During a run, Play asks
+  "Sure?" first.
+- **Hotkeys**: one button per key in `Brainstorm.config.keybinds`. Clicking
+  one sets `ST.capturing`; the next key press is stored unless it is 1-5
+  (used for save-state slots) or already taken. Esc cancels. "Reset to
+  defaults" restores `ST.DEFAULT_KEYS`.
+
+- **Mobile**: the Mobile Friendly toggle (`UI/mobile.lua`, below).
+
+`ST.ensure_config()` fills in anything missing from older configs at start.
+
+### `Brainstorm/UI/mobile.lua` (touch controls)
+Every action has a hotkey, which a phone can't press. With
+`Brainstorm.config.mobile` on (the "Mobile Friendly" toggle; on for Android
+and off elsewhere at the first start), the Mobile part of the settings tab
+has buttons for Search / Stop search, Reroll, Save this seed, and Save /
+Load for the five save-state slots. Load asks "Sure?" during a run. The
+buttons call the same functions as the hotkeys (`Brainstorm.toggleAutoReroll`,
+`Brainstorm.reroll`, `Brainstorm.saveState(k)`, `Brainstorm.loadState(k)`,
+`ST.save_current_seed`) and close the menu first, so the result can be seen.
+
+During a run a "Brainstorm" button at the middle of the right screen edge
+(between the consumable slots and the deck, where the game puts nothing)
+opens the Mobile part. A hook on `Game:start_run` creates it
+(`MB.update_run_button`). It needs no removing: everything created during
+a run is removed by the game when the run ends (`Game:delete_run`).
 
 ---
 
@@ -217,11 +273,86 @@ That worked for one search at a time but is fragile with threads, and made
 the filter impossible to test in isolation. The filter *logic* itself was
 moved over unchanged, and the golden test proves it gives the same answers.
 
+### Game data: the lists a search predicts from (`src/gamedata.hpp/.cpp`)
+Balatro picks "item number N of an ordered list", N coming from the seed. The
+random numbers are the same in every copy of the game; the lists are not.
+Mods add jokers, tags, vouchers, packs, rarities and editions, and a deck or
+challenge changes what is available. So custom filters do not read the item
+tables built into Immolate. They read a `GameData`:
+
+- `GameData::vanilla()`: the unmodded game on a plain deck, built from
+  `items.hpp`. Used when the mod sends nothing, and by the tests.
+- `GameData::parse(text)`: the lists of the running game. The mod produces
+  the text (`Brainstorm/Core/gamedata.lua`) and sends it with every search
+  in `bs_params.game_data` (API version 3). `gamedata.hpp` documents the
+  format.
+
+How the mod gets the lists without knowing what any mod added: it calls the
+game's own functions the way the game does. `get_current_pool()` gives the
+tag, voucher and joker lists. For the things decided by one random roll (which
+pack, which joker rarity, which edition), the roll is replaced by a number of
+our choosing and the answer recorded for rolls from 0 to 1; where the answer
+changes, the exact roll is found by halving the gap. While this runs, the
+run's random state and the few fields those functions read are swapped for
+stand-ins and put back afterwards. The lists are right for a run that has just
+started, so they are taken then when possible and remembered per deck, stake
+and challenge.
+
+**Weighted games.** A mod can switch on Steamodded's "object weights"
+(Pokermon does). That changes *how* the game picks, not just what exists,
+and the library has a second way of predicting for it:
+
+- Every item has a weight, and a roll picks one with a chance in proportion
+  to it (`SMODS.poll_object`), instead of "item number N of a list".
+  `selectByWeight` and `drawWeighted` in `filterprog.cpp` do the same
+  arithmetic, step for step.
+- Picks share random streams. The three blinds, the voucher, the two skip
+  tags and the shop packs of an ante all draw from one stream, in the order
+  the game makes them (`SeedFacts::needStart`): ante 1 is blinds, voucher,
+  tags; later antes are voucher, tags, blinds; the packs follow. Every shop
+  card, joker or consumable, draws from another. So a shop joker can only
+  be predicted by predicting every card before it
+  (`nextWeightedShopCard`).
+- Weights change with what is on offer. An item in the shop can't come
+  again, and a mod may change other weights too (Pokermon stops offering a
+  Pokemon's relatives). The exporter finds these "links" by marking each
+  item used in turn and weighing the lists again.
+
+The exporter (`GD.build_weighted`) builds each list the way Steamodded
+does, by calling the same Steamodded functions, then checks every list
+against the game's real pick function with a few chosen rolls. If they ever
+disagree (a newer Steamodded picks differently), the export fails with an
+error instead of sending wrong lists, and the search is refused: with the
+built-in lists nearly every seed would be predicted wrongly.
+
+Two things about the game that the exporter has to work around: Balatro
+switches Lua's garbage collector off and runs it by hand once per frame, so
+a long export must collect its own garbage (`tidy()`), or a big mod pack
+runs the game out of memory; and game code that "rolls again until it gets
+an item" never ends if every stand-in roll is the same, so rolls come from a
+sequence wherever such code is called.
+
+**Limits.** Lists and numbers can be sent; code cannot. A mod that changes
+how the game generates things in a way not described above is still
+predicted wrongly. After every found run starts, the mod compares its ante 1
+skip tags, voucher and boss with `bs_predict_start()` and tells the player
+if they differ (`Brainstorm.checkPrediction`). In a weighted game the
+predictions past the start of the run also assume that nothing else draws
+from the shared streams first (a tag that adds a voucher, a boss reroll, a
+mod's pack that makes cards without a stream of its own).
+
+To compare the library with a real game, `bs_describe_seed()` prints
+everything it predicts for a seed (`FilterProgram::describe`), in the same
+form as a list of what the game really generated on that seed.
+
 ### Custom filters (`src/filterprog.hpp/.cpp`)
 A custom filter is a list of **conditions**, written as text, which a seed
 must all satisfy. The in-game filter builder writes this text; the mod passes
 it to the library in `bs_params.filter_spec` (API version 2), where it is
-read once per search and checked for every seed after the menu options.
+read once per search, resolved against the game data above, and checked for
+every seed. A condition that can never hold (a tag before the ante it
+unlocks, an upgraded voucher on ante 1, the same legendary from two Souls
+without `assume showman`) is an error with the reason, not an endless search.
 
 ```
 tag     tag_charm      ante=1 blind=small     # Small Blind tag of ante 1
@@ -263,20 +394,24 @@ versions (Vagabond: uncommon in 1.0.0, rare in 1.0.1), and the rarity lookup
 must use the current version.
 
 **Saved filters and the in-game builder** are `Brainstorm/UI/filter_builder.lua`.
-Settings > Brainstorm-Rerolled shows the ACTIVE FILTER (a cycler over the saved
-filters, or None) and an EDIT FILTERS button. Filters are kept in
+The list of saved filters (Use, Edit, Delete, New filter) is the Filters
+sub-tab of Settings > Brainstorm-Rerolled (`FB.list_rows()`, see below).
+Filters are kept in
 `Brainstorm.config.filters` (`{ active = n, list = { {name,
 assume_enhanced, conditions}, ... } }`); the active one is turned into the
 text above (`Brainstorm.FB.spec()`), which `searchOptions()` sends with
 every search. The first start of this version imports older settings (the
-first builder's single filter, the old built-in menu options) and adds two
-starter filters, Charm + Soul and Charm + Soul + Observatory. Every old
+first builder's single filter, the old built-in menu options) and adds four
+starter filters (`FB.starter_filters()`): Charm + Perkeo, Charm + Negative
+Perkeo, Charm + Perkeo + Observatory, and Buffoon + Neg. Blueprint (a
+Negative Blueprint in the first Buffoon pack). Every old
 built-in option can be rebuilt as conditions (`filterprog_test` checks
 Charm + Soul, Perkeo, Observatory, Bean, Retcon... give the old answers;
 Burglar is "Burglar in antes 6-8").
 
-All filter screens (saved filters, one filter, one condition, joker picker)
-live in one window: moving between them replaces the window's contents in
+The filter editor screens (one filter, one condition, joker picker) live in
+one window; Back from a filter returns to the Filters sub-tab
+(`FB.to_settings()`). Inside the window moving between them replaces the window's contents in
 place, the way the game's settings tabs do (`FB.go`), so nothing slides in.
 Item lists and names come from the game itself (`G.P_CENTER_POOLS`,
 `localize`). The joker list leaves out legendaries (use a Soul condition)
@@ -433,6 +568,7 @@ of once per draw, and the key strings are built once instead of per item.
 | Windows (and Linux/Steam Deck via Proton) | `Immolate.dll` | MSVC, static runtime (no VC++ Redistributable needed) |
 | macOS (Apple Silicon + Intel) | `Immolate.dylib` | Clang, one *universal* file containing both architectures |
 | Linux (development only) | `Immolate.so` | GCC/Clang, used for local testing |
+| Android phones (64-bit ARM) | `Immolate-android-arm64.so` | Android NDK (Clang), static C++ runtime |
 
 **Windows builds are done locally** (free): on Linux, the MinGW-w64 cross
 compiler builds `Immolate.dll` and Wine runs the tests (commands in the
@@ -441,6 +577,23 @@ README). **macOS builds need Apple's tools**, so they run on GitHub Actions:
 machines, then publishes a ready-to-install `Brainstorm-Rerolled` folder as a
 downloadable artifact. It only runs when started by hand (Actions tab ->
 build -> Run workflow) to stay within the free minutes of a private repo.
+
+**Android builds** need the free Android NDK (CI uses the one on GitHub's
+Ubuntu machines). Locally, with the NDK unpacked in `~/Android`:
+
+```
+cmake -S Immolate -B Immolate/build-android \
+  -DCMAKE_TOOLCHAIN_FILE=~/Android/android-ndk-r27c/build/cmake/android.toolchain.cmake \
+  -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-24 -DANDROID_STL=c++_static
+cmake --build Immolate/build-android --parallel
+```
+
+This also builds the test programs for Android. They can run on a phone
+connected with USB debugging: `adb push` them to `/data/local/tmp` and run
+them with `adb shell`. `filterprog_test` finds its data folder by a path
+fixed when it is compiled, so for a phone it is compiled with
+`-DTEST_DATA_DIR="/data/local/tmp/<folder>/data"` and `tests/data` is pushed
+there.
 
 To build locally: `Immolate/build.sh` (macOS/Linux) or `Immolate\build.bat`
 (Windows, from the *x64 Native Tools Command Prompt for VS 2022*).
@@ -477,18 +630,27 @@ English names select the same items, bad input gives errors instead of
 crashes, cancelling is fast, wrap-around works, and the legacy function still
 works.
 
-### Checks in the real game
-The C++ tests compare the engine with itself and with the original code; the
-final word is the real game. Predictions were also compared with what the
-running game itself generates for the same seeds (tags, vouchers, packs,
-shop jokers, Souls, bosses), calling the game's own functions from inside
-the game. The boss seeds kept in `tests/boss_test.cpp` come from such a
-check.
+### Exporter test (`tools/test-exporter.sh`, needs LuaJIT)
+`Brainstorm/Core/gamedata.lua` runs outside Balatro against
+`tools/mock_game.lua`, a stand-in for the unmodded game built from the
+library's own data: what the exporter reads back through the mock's game
+functions must equal the built-in data, for a fresh run and for one taken
+mid-run. The text then goes through `Core/native.lua` into the real library
+(a search, a seed check, the start prediction), and a third run adds modded
+items to the mock. `ctest` runs it when LuaJIT is installed. This tests the
+exporter's logic; only the real game can test it against the real game.
 
-When doing this, never build real `Card` objects just to look at them:
-deleting them at once leaves their buttons behind and crashes the next run.
-Call the same functions `create_card` uses and stop before the card is
-built.
+### In-game checks
+The C++ tests compare the engine with itself and with the original code; the
+final word is the real game. During development, predictions were compared
+with what the game itself generates: filter verdicts per seed, the ante 1
+skip tags, voucher and boss on unmodded and modded profiles, the boss blinds
+of antes 1..8 (kept in `tests/boss_test.cpp`), and whole runs in a weighted
+game (kept in `tests/data`).
+
+Never build real `Card` objects in such checks: deleting them at once leaves
+their buttons behind and crashes the next run. Call the same functions as
+`create_card` and stop before the card is built.
 
 ---
 
@@ -499,7 +661,9 @@ Brainstorm/                    the mod (players install it as Brainstorm-Rerolle
   lovely.toml                  tells Lovely what to inject
   Core/Brainstorm.lua          keybinds, save states, auto-reroll flow
   Core/native.lua              FFI bridge to the native library
-  UI/ui.lua                    settings menu
+  UI/ui.lua                    adds the Brainstorm-Rerolled settings tab
+  UI/settings.lua              settings tab: Filters / Saved seeds / Hotkeys / Mobile
+  UI/mobile.lua                touch buttons (the Mobile Friendly setting)
   UI/filter_builder.lua        in-game custom filter builder
   nativefs.lua                 file access outside the game's sandbox (3rd party)
 Immolate/
@@ -518,6 +682,7 @@ Immolate/
   src/util.hpp/.cpp            pseudohash, LuaRandom, round13
   src/main.cpp, search.hpp     original dev CLI (immol), not used by the mod
   tests/                       golden, API, math, prefilter, fastscan, filterprog tests + bench
+tools/                         test-exporter.sh, mock_game.lua (the exporter test)
 docs/
   ARCHITECTURE.md              this file
 .github/workflows/build.yml    CI: build + test + package (+ release)

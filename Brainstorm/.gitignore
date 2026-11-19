@@ -7,3 +7,4 @@ config.lua
 Immolate.dll
 Immolate.dylib
 Immolate.so
+debug/

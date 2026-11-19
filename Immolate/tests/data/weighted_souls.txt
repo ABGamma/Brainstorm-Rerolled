@@ -1,0 +1,8 @@
+SOULCHKA j_poke_mewtwo j_poke_shaymin
+SOULCHKB j_poke_zapdos j_poke_celebi
+SOULCHKC j_poke_jirachi j_poke_shaymin
+SOULCHKD j_poke_deoxys j_poke_moltres
+SOULCHKE j_poke_entei j_poke_suicune
+SOULCHKF j_poke_celebi j_poke_entei
+SOULCHKG j_poke_raikou j_poke_moltres
+SOULCHKH j_poke_missingno j_poke_zapdos

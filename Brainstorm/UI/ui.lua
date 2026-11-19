@@ -1,9 +1,7 @@
 -- ui.lua — adds the "Brainstorm-Rerolled" tab to the game's Settings menu.
 --
--- The tab shows which saved filter auto-reroll uses ("ACTIVE FILTER") and a
--- button to manage filters. Its contents are built by
--- Brainstorm.FB.settings_tab() in UI/filter_builder.lua. (The old built-in
--- filter options were replaced by saved filters; see filter_builder.lua.)
+-- The tab holds the saved filters, saved seeds and hotkeys. Its contents
+-- are built by Brainstorm.ST.tab() in UI/settings.lua.
 
 -- When true, the next Settings menu opens on the Brainstorm-Rerolled tab (used when
 -- coming back from the filter screens).
@@ -25,7 +23,7 @@ function create_tabs(args)
       label = "Brainstorm-Rerolled",
       chosen = chosen,
       tab_definition_function = function()
-        return Brainstorm.FB.settings_tab()
+        return Brainstorm.ST.tab()
       end,
       tab_definition_function_args = "Brainstorm",
     }

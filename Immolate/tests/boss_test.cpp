@@ -30,8 +30,7 @@ static std::string bosses(const char *seed) {
 }
 
 int main() {
-  // As the game picked them: the ante 1 boss of a fresh run, then the
-  // game's get_new_boss() for antes 2..8.
+  // Exactly as read from the game.
   const char *fromGame[] = {
       "AAAAAAAA|The Manacle|The House|The Fish|The Window|The Wall|The Tooth|The Flint|Verdant Leaf",
       "M4Q2ZZ71|The Pillar|The Needle|The Head|The Plant|The Fish|The Arm|The Mark|Violet Vessel",

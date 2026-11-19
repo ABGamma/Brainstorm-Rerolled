@@ -1,0 +1,197 @@
+gamedata 1
+# deck/stake/challenge: Red Deck|1| (fresh run)
+weights 1
+tags 1 tag_uncommon tag_rare tag_foil tag_holo tag_polychrome tag_investment tag_voucher tag_boss tag_charm tag_coupon tag_double tag_juggle tag_d_six tag_skip tag_economy
+tags 2 tag_uncommon tag_rare tag_negative tag_foil tag_holo tag_polychrome tag_investment tag_voucher tag_boss tag_standard tag_charm tag_meteor tag_buffoon tag_handy tag_garbage tag_ethereal tag_coupon tag_double tag_juggle tag_d_six tag_top_up tag_skip tag_orbital tag_economy tag_poke_pocket_tag tag_poke_stage_one_tag
+tags 3 tag_uncommon tag_rare tag_negative tag_foil tag_holo tag_polychrome tag_investment tag_voucher tag_boss tag_standard tag_charm tag_meteor tag_buffoon tag_handy tag_garbage tag_ethereal tag_coupon tag_double tag_juggle tag_d_six tag_top_up tag_skip tag_orbital tag_economy tag_poke_pocket_tag tag_poke_shiny_tag tag_poke_stage_one_tag tag_poke_safari_tag
+tags 4 tag_uncommon tag_rare tag_negative tag_foil tag_holo tag_polychrome tag_investment tag_voucher tag_boss tag_standard tag_charm tag_meteor tag_buffoon tag_handy tag_garbage tag_ethereal tag_coupon tag_double tag_juggle tag_d_six tag_top_up tag_skip tag_orbital tag_economy tag_poke_pocket_tag tag_poke_shiny_tag tag_poke_stage_one_tag tag_poke_safari_tag
+tags 5 tag_uncommon tag_rare tag_negative tag_foil tag_holo tag_polychrome tag_investment tag_voucher tag_boss tag_standard tag_charm tag_meteor tag_buffoon tag_handy tag_garbage tag_ethereal tag_coupon tag_double tag_juggle tag_d_six tag_top_up tag_skip tag_orbital tag_economy tag_poke_pocket_tag tag_poke_shiny_tag tag_poke_stage_one_tag tag_poke_safari_tag
+tags 6 tag_uncommon tag_rare tag_negative tag_foil tag_holo tag_polychrome tag_investment tag_voucher tag_boss tag_standard tag_charm tag_meteor tag_buffoon tag_handy tag_garbage tag_ethereal tag_coupon tag_double tag_juggle tag_d_six tag_top_up tag_skip tag_orbital tag_economy tag_poke_pocket_tag tag_poke_shiny_tag tag_poke_stage_one_tag tag_poke_safari_tag
+tags 7 tag_uncommon tag_rare tag_negative tag_foil tag_holo tag_polychrome tag_investment tag_voucher tag_boss tag_standard tag_charm tag_meteor tag_buffoon tag_handy tag_garbage tag_ethereal tag_coupon tag_double tag_juggle tag_d_six tag_top_up tag_skip tag_orbital tag_economy tag_poke_pocket_tag tag_poke_shiny_tag tag_poke_stage_one_tag tag_poke_safari_tag
+tags 8 tag_uncommon tag_rare tag_negative tag_foil tag_holo tag_polychrome tag_investment tag_voucher tag_boss tag_standard tag_charm tag_meteor tag_buffoon tag_handy tag_garbage tag_ethereal tag_coupon tag_double tag_juggle tag_d_six tag_top_up tag_skip tag_orbital tag_economy tag_poke_pocket_tag tag_poke_shiny_tag tag_poke_stage_one_tag tag_poke_safari_tag
+voucher v_overstock_norm 1 1 *10
+voucher v_overstock_plus 0 1 *10 v_overstock_norm
+voucher v_clearance_sale 1 1 *10
+voucher v_liquidation 0 1 *10 v_clearance_sale
+voucher v_hone 1 1 *10
+voucher v_glow_up 0 1 *10 v_hone
+voucher v_reroll_surplus 1 1 *10
+voucher v_reroll_glut 0 1 *10 v_reroll_surplus
+voucher v_crystal_ball 1 1 *10
+voucher v_omen_globe 0 1 *10 v_crystal_ball
+voucher v_telescope 1 1 *10
+voucher v_observatory 0 1 *10 v_telescope
+voucher v_grabber 1 1 *10
+voucher v_nacho_tong 0 1 *10 v_grabber
+voucher v_wasteful 1 1 *10
+voucher v_recyclomancy 0 1 *10 v_wasteful
+voucher v_tarot_merchant 1 1 *10
+voucher v_tarot_tycoon 0 1 *10 v_tarot_merchant
+voucher v_planet_merchant 1 1 *10
+voucher v_planet_tycoon 0 1 *10 v_planet_merchant
+voucher v_seed_money 1 1 *10
+voucher v_money_tree 0 1 *10 v_seed_money
+voucher v_blank 1 1 *10
+voucher v_antimatter 0 1 *10 v_blank
+voucher v_magic_trick 1 1 *10
+voucher v_illusion 0 1 *10 v_magic_trick
+voucher v_hieroglyph 1 1 *10
+voucher v_petroglyph 0 1 *10 v_hieroglyph
+voucher v_directors_cut 1 1 *10
+voucher v_retcon 0 1 *10 v_directors_cut
+voucher v_paint_brush 1 1 *10
+voucher v_palette 0 1 *10 v_paint_brush
+voucher v_poke_energysearch 1 1 *10
+voucher v_poke_energyresearch 0 1 *10 v_poke_energysearch
+voucher v_poke_goodrod 1 1 *10
+voucher v_poke_superrod 0 1 *10 v_poke_goodrod
+vouchersperante 1
+boss bl_arm 234567 *10
+boss bl_club 1234567 *10
+boss bl_eye 34567 *10
+boss bl_final_acorn 8 *10
+boss bl_final_bell 8 *10
+boss bl_final_heart 8 *10
+boss bl_final_leaf 8 *10
+boss bl_final_vessel 8 *10
+boss bl_fish 234567 *10
+boss bl_flint 234567 *10
+boss bl_goad 1234567 *10
+boss bl_head 1234567 *10
+boss bl_hook 1234567 *10
+boss bl_house 234567 *10
+boss bl_manacle 1234567 *10
+boss bl_mark 234567 *10
+boss bl_mouth 234567 *10
+boss bl_needle 234567 *10
+boss bl_ox 67 *10
+boss bl_pillar 1234567 *10
+boss bl_plant 4567 *10
+boss bl_poke_gray_godfather 8 *10
+boss bl_poke_iridescent_hacker 8 *10
+boss bl_poke_mirror 34567 *10
+boss bl_poke_rocket 234567 *10
+boss bl_poke_star 34567 *10
+boss bl_poke_white_executive 8 *10
+boss bl_psychic 1234567 *10
+boss bl_serpent 567 *10
+boss bl_tooth 34567 *10
+boss bl_wall 234567 *10
+boss bl_water 234567 *10
+boss bl_wheel 234567 *10
+boss bl_window 1234567 *10
+firstpack p_buffoon_normal
+packlist p_arcana_normal p_arcana_normal p_arcana_normal p_arcana_normal p_arcana_jumbo p_arcana_jumbo *2.5 p_arcana_mega p_arcana_mega *10 p_celestial_normal p_celestial_normal p_celestial_normal p_celestial_normal p_celestial_jumbo p_celestial_jumbo *2.5 p_celestial_mega p_celestial_mega *10 p_standard_normal p_standard_normal p_standard_normal p_standard_normal p_standard_jumbo p_standard_jumbo *2.5 p_standard_mega p_standard_mega *6 p_buffoon_normal p_buffoon_normal p_buffoon_jumbo *1.5 p_buffoon_mega *3 p_spectral_normal p_spectral_normal p_spectral_jumbo *0.70000000000000007 p_spectral_mega *10 p_poke_pokepack_normal p_poke_pokepack_normal p_poke_pokepack_normal p_poke_pokepack_normal p_poke_pokepack_jumbo p_poke_pokepack_jumbo *2.5 p_poke_pokepack_mega p_poke_pokepack_mega
+shop 42 28 2
+raritypolls 1
+streams std_smods_polltype std_smods_pollsho std_smods_pollsou
+rarity 0 Joker1sho *0 j_joker j_greedy_joker j_lusty_joker j_wrathful_joker j_gluttenous_joker j_jolly j_zany j_mad j_crazy j_droll j_sly j_wily j_clever j_devious j_crafty j_half j_credit_card j_banner j_mystic_summit j_8_ball j_misprint j_raised_fist j_chaos j_scary_face j_abstract j_delayed_grat j_gros_michel j_even_steven j_odd_todd j_scholar j_business j_supernova j_ride_the_bus j_egg j_runner j_ice_cream j_splash j_blue_joker j_faceless j_green_joker j_superposition j_todo_list j_red_card j_square j_riff_raff j_photograph j_reserved_parking j_mail j_hallucination j_fortune_teller j_juggler j_drunkard j_golden j_popcorn j_walkie_talkie j_smiley j_ticket? j_swashbuckler j_hanging_chad j_shoot_the_moon *10 j_poke_caterpie j_poke_metapod j_poke_weedle j_poke_kakuna j_poke_pidgey j_poke_rattata j_poke_spearow j_poke_ekans j_poke_pikachu j_poke_sandshrew? j_poke_nidoranf j_poke_nidoranm j_poke_clefairy j_poke_vulpix j_poke_jigglypuff j_poke_zubat j_poke_oddish j_poke_paras j_poke_diglett j_poke_meowth? j_poke_psyduck j_poke_growlithe j_poke_poliwag j_poke_abra j_poke_machop j_poke_bellsprout j_poke_tentacool j_poke_geodude j_poke_ponyta j_poke_farfetchd j_poke_doduo j_poke_grimer j_poke_krabby j_poke_voltorb j_poke_exeggcute j_poke_cubone j_poke_koffing j_poke_rhyhorn? j_poke_tangela? j_poke_goldeen? j_poke_staryu j_poke_magikarp j_poke_eevee j_poke_sentret j_poke_hoothoot j_poke_ledyba j_poke_spinarak j_poke_chinchou j_poke_pichu j_poke_cleffa j_poke_igglybuff j_poke_hoppip j_poke_sunkern j_poke_yanma j_poke_wooper j_poke_pineco j_poke_snubbull j_poke_teddiursa j_poke_stantler j_poke_poochyena j_poke_zigzagoon j_poke_wurmple j_poke_seedot? j_poke_taillow j_poke_wingull j_poke_shroomish j_poke_makuhita j_poke_meditite j_poke_plusle j_poke_minun j_poke_illumise j_poke_wailmer j_poke_numel j_poke_swablu j_poke_corphish j_poke_baltoy j_poke_snorunt j_poke_luvdisc j_poke_bidoof j_poke_kricketot j_poke_budew j_poke_buizel j_poke_buneary j_poke_roggenrola j_poke_drilbur? j_poke_trubbish j_poke_gothita j_poke_vanillite j_poke_klink j_poke_bunnelby j_poke_litleo j_poke_grubbin j_poke_rockruff j_poke_nickit j_poke_yamper j_poke_tarountula j_poke_fidough j_poke_smoliv j_poke_bramblin j_poke_rellor j_poke_wiglett j_poke_tall_grass j_poke_mystery_egg j_poke_rival j_poke_professor
+rarity 0.69999999999999996 Joker2sho *0 j_stencil j_four_fingers j_mime j_ceremonial j_marble j_loyalty_card j_dusk j_fibonacci j_steel_joker? j_hack j_pareidolia j_space j_burglar j_blackboard j_sixth_sense j_constellation j_hiker j_card_sharp j_madness j_seance j_vampire j_shortcut j_hologram j_cloud_9 j_rocket j_midas_mask j_luchador j_gift j_turtle_bean j_erosion j_to_the_moon j_stone? j_lucky_cat? j_bull j_diet_cola j_trading j_flash j_trousers j_ramen j_selzer j_castle j_mr_bones j_acrobat j_sock_and_buskin j_troubadour j_certificate j_smeared j_throwback j_rough_gem j_bloodstone j_arrowhead j_onyx_agate j_glass? j_ring_master j_flower_pot j_merry_andy j_oops j_idol j_seeing_double j_matador j_satellite j_cartomancer j_astronomer j_bootstraps *10 j_poke_bulbasaur j_poke_charmander j_poke_squirtle j_poke_butterfree j_poke_beedrill j_poke_arbok j_poke_gloom j_poke_parasect j_poke_venonat j_poke_dugtrio j_poke_mankey j_poke_weepinbell j_poke_tentacruel j_poke_slowpoke j_poke_magnemite? j_poke_seel j_poke_shellder j_poke_gastly j_poke_onix j_poke_drowzee j_poke_kingler j_poke_hitmonlee j_poke_hitmonchan j_poke_lickitung j_poke_kangaskhan j_poke_horsea j_poke_scyther j_poke_pinsir j_poke_tauros j_poke_porygon j_poke_omanyte j_poke_kabuto j_poke_dratini j_poke_chikorita j_poke_cyndaquil j_poke_totodile j_poke_furret j_poke_lanturn j_poke_togepi? j_poke_natu j_poke_mareep j_poke_marill j_poke_quagsire j_poke_murkrow j_poke_misdreavus j_poke_girafarig j_poke_qwilfish j_poke_heracross j_poke_sneasel j_poke_ursaring j_poke_slugma j_poke_swinub j_poke_remoraid j_poke_houndour j_poke_phanpy j_poke_tyrogue j_poke_hitmontop j_poke_smoochum j_poke_elekid j_poke_magby j_poke_miltank j_poke_larvitar j_poke_treecko j_poke_torchic j_poke_mudkip j_poke_mightyena j_poke_linoone j_poke_silcoon j_poke_cascoon j_poke_ralts j_poke_surskit j_poke_breloom j_poke_slakoth j_poke_nincada j_poke_hariyama j_poke_azurill j_poke_nosepass j_poke_aron? j_poke_volbeat j_poke_roselia j_poke_carvanha j_poke_spinda j_poke_cacnea j_poke_lileep j_poke_anorith j_poke_kecleon j_poke_duskull j_poke_shuppet j_poke_tropius j_poke_bagon j_poke_beldum j_poke_floatzel j_poke_bonsly j_poke_mimejr j_poke_happiny j_poke_munchlax j_poke_mantyke j_poke_pansage j_poke_pansear j_poke_panpour j_poke_vanillish j_poke_frillish j_poke_ferroseed j_poke_litwick j_poke_axew j_poke_deino j_poke_pyroar j_poke_pumpkaboo j_poke_mimikyu j_poke_dreepy j_poke_charcadet j_poke_wugtrio j_poke_pokedex j_poke_rotomdex j_poke_jelly_donut j_poke_rage_candy_bar j_poke_treasure_eatery j_poke_imposter_professor j_poke_oologist
+rarity 0.94999999999999996 Joker3sho *0 j_dna j_vagabond j_baron j_obelisk j_baseball j_ancient j_campfire j_blueprint j_wee j_hit_the_road j_duo j_trio j_family j_order j_tribe j_stuntman j_invisible j_brainstorm j_drivers_license j_burnt *10 j_poke_golbat j_poke_haunter j_poke_chansey? j_poke_mrmime j_poke_jynx j_poke_electabuzz j_poke_magmar j_poke_lapras j_poke_ditto j_poke_aerodactyl j_poke_snorlax j_poke_weird_tree j_poke_aipom j_poke_dunsparce j_poke_gligar j_poke_shuckle j_poke_magcargo j_poke_piloswine j_poke_corsola j_poke_delibird j_poke_mantine? j_poke_skarmory j_poke_donphan j_poke_smeargle j_poke_skitty j_poke_sableye j_poke_torkoal? j_poke_zangoose j_poke_seviper j_poke_feebas j_poke_absol j_poke_wynaut j_poke_clamperl j_poke_relicanth j_poke_chingling j_poke_bronzor j_poke_riolu j_poke_rotom j_poke_munna j_poke_zorua j_poke_vanilluxe j_poke_elgyem j_poke_lampent j_poke_golett j_poke_pawniard j_poke_drampa j_poke_boltund j_poke_tinkatink j_poke_gimmighoul? j_poke_everstone j_poke_ruins_of_alph j_poke_daycare
+shoptype Joker 28
+shoptype playing_card 0
+shoptype Tarot 4 c_fool c_magician c_high_priestess c_empress c_emperor c_heirophant c_lovers c_chariot c_justice c_hermit c_wheel_of_fortune c_strength c_hanged_man c_death c_temperance c_devil c_tower c_star c_moon c_sun c_judgement c_world
+shoptype Planet 4 c_mercury c_venus c_earth c_mars c_jupiter c_saturn c_uranus c_neptune c_pluto
+shoptype Spectral 0
+shoptype poke_energy 2 c_poke_grass_energy c_poke_fire_energy c_poke_water_energy c_poke_lightning_energy c_poke_psychic_energy c_poke_fighting_energy c_poke_colorless_energy c_poke_darkness_energy c_poke_metal_energy c_poke_fairy_energy c_poke_dragon_energy c_poke_earth_energy
+shoptype poke_item 4 c_poke_pokeball *3 c_poke_greatball *10 c_poke_twisted_spoon c_poke_firestone c_poke_waterstone c_poke_thunderstone c_poke_leafstone c_poke_moonstone c_poke_sunstone c_poke_shinystone c_poke_duskstone c_poke_dawnstone c_poke_icestone c_poke_linkcable c_poke_metalcoat c_poke_dragonscale c_poke_kingsrock c_poke_upgrade c_poke_hardstone c_poke_miracleseed c_poke_prismscale *5 c_poke_teraorb *1 c_poke_thickclub c_poke_leek
+editionstream edi
+edition 0.95999999999999996 e_poke_shiny
+edition 0.96190476190476193 e_foil
+edition 0.98095238095238102 e_holo
+edition 0.99428571428571433 e_polychrome
+edition 0.99714285714285711 e_negative
+soul 1
+legendary Joker4 *0 j_caino j_triboulet j_yorick j_chicot j_perkeo *10 j_poke_articuno j_poke_zapdos j_poke_moltres j_poke_mewtwo j_poke_mew j_poke_raikou j_poke_entei j_poke_suicune j_poke_lugia j_poke_ho_oh j_poke_celebi j_poke_jirachi j_poke_deoxys j_poke_shaymin j_poke_missingno
+link j_poke_caterpie *0 j_poke_metapod j_poke_butterfree
+link j_poke_metapod *0 j_poke_caterpie j_poke_butterfree
+link j_poke_weedle *0 j_poke_kakuna j_poke_beedrill
+link j_poke_kakuna *0 j_poke_weedle j_poke_beedrill
+link j_poke_ekans *0 j_poke_arbok
+link j_poke_pikachu *0 j_poke_pichu
+link j_poke_clefairy *0 j_poke_cleffa
+link j_poke_jigglypuff *0 j_poke_igglybuff
+link j_poke_zubat *0 j_poke_golbat
+link j_poke_oddish *0 j_poke_gloom
+link j_poke_paras *0 j_poke_parasect
+link j_poke_diglett *0 j_poke_dugtrio
+link j_poke_bellsprout *0 j_poke_weepinbell
+link j_poke_tentacool *0 j_poke_tentacruel
+link j_poke_krabby *0 j_poke_kingler
+link j_poke_sentret *0 j_poke_furret
+link j_poke_chinchou *0 j_poke_lanturn
+link j_poke_pichu *0 j_poke_pikachu
+link j_poke_cleffa *0 j_poke_clefairy
+link j_poke_igglybuff *0 j_poke_jigglypuff
+link j_poke_wooper *0 j_poke_quagsire
+link j_poke_teddiursa *0 j_poke_ursaring
+link j_poke_poochyena *0 j_poke_mightyena
+link j_poke_zigzagoon *0 j_poke_linoone
+link j_poke_wurmple *0 j_poke_silcoon j_poke_cascoon
+link j_poke_shroomish *0 j_poke_breloom
+link j_poke_makuhita *0 j_poke_hariyama
+link j_poke_budew *0 j_poke_roselia
+link j_poke_buizel *0 j_poke_floatzel
+link j_poke_vanillite *0 j_poke_vanillish j_poke_vanilluxe
+link j_poke_litleo *0 j_poke_pyroar
+link j_poke_yamper *0 j_poke_boltund
+link j_poke_wiglett *0 j_poke_wugtrio
+link j_poke_butterfree *0 j_poke_caterpie j_poke_metapod
+link j_poke_beedrill *0 j_poke_weedle j_poke_kakuna
+link j_poke_arbok *0 j_poke_ekans
+link j_poke_gloom *0 j_poke_oddish
+link j_poke_parasect *0 j_poke_paras
+link j_poke_dugtrio *0 j_poke_diglett
+link j_poke_weepinbell *0 j_poke_bellsprout
+link j_poke_tentacruel *0 j_poke_tentacool
+link j_poke_gastly *0 j_poke_haunter
+link j_poke_kingler *0 j_poke_krabby
+link j_poke_hitmonlee *0 j_poke_hitmonchan j_poke_tyrogue j_poke_hitmontop
+link j_poke_hitmonchan *0 j_poke_hitmonlee j_poke_tyrogue j_poke_hitmontop
+link j_poke_furret *0 j_poke_sentret
+link j_poke_lanturn *0 j_poke_chinchou
+link j_poke_marill *0 j_poke_azurill
+link j_poke_quagsire *0 j_poke_wooper
+link j_poke_ursaring *0 j_poke_teddiursa
+link j_poke_slugma *0 j_poke_magcargo
+link j_poke_swinub *0 j_poke_piloswine
+link j_poke_phanpy *0 j_poke_donphan
+link j_poke_tyrogue *0 j_poke_hitmonlee j_poke_hitmonchan j_poke_hitmontop
+link j_poke_hitmontop *0 j_poke_hitmonlee j_poke_hitmonchan j_poke_tyrogue
+link j_poke_smoochum *0 j_poke_jynx
+link j_poke_elekid *0 j_poke_electabuzz
+link j_poke_magby *0 j_poke_magmar
+link j_poke_mightyena *0 j_poke_poochyena
+link j_poke_linoone *0 j_poke_zigzagoon
+link j_poke_silcoon *0 j_poke_wurmple j_poke_cascoon
+link j_poke_cascoon *0 j_poke_wurmple j_poke_silcoon
+link j_poke_breloom *0 j_poke_shroomish
+link j_poke_hariyama *0 j_poke_makuhita
+link j_poke_azurill *0 j_poke_marill
+link j_poke_roselia *0 j_poke_budew
+link j_poke_floatzel *0 j_poke_buizel
+link j_poke_bonsly *0 j_poke_weird_tree
+link j_poke_mimejr *0 j_poke_mrmime
+link j_poke_happiny *0 j_poke_chansey
+link j_poke_munchlax *0 j_poke_snorlax
+link j_poke_mantyke *0 j_poke_mantine
+link j_poke_vanillish *0 j_poke_vanillite j_poke_vanilluxe
+link j_poke_litwick *0 j_poke_lampent
+link j_poke_pyroar *0 j_poke_litleo
+link j_poke_wugtrio *0 j_poke_wiglett
+link j_poke_golbat *0 j_poke_zubat
+link j_poke_haunter *0 j_poke_gastly
+link j_poke_chansey *0 j_poke_happiny
+link j_poke_mrmime *0 j_poke_mimejr
+link j_poke_jynx *0 j_poke_smoochum
+link j_poke_electabuzz *0 j_poke_elekid
+link j_poke_magmar *0 j_poke_magby
+link j_poke_snorlax *0 j_poke_munchlax
+link j_poke_weird_tree *0 j_poke_bonsly
+link j_poke_magcargo *0 j_poke_slugma
+link j_poke_piloswine *0 j_poke_swinub
+link j_poke_mantine *0 j_poke_mantyke
+link j_poke_donphan *0 j_poke_phanpy
+link j_poke_vanilluxe *0 j_poke_vanillite j_poke_vanillish
+link j_poke_lampent *0 j_poke_litwick
+link j_poke_boltund *0 j_poke_yamper

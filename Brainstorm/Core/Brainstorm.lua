@@ -6,7 +6,7 @@ Brainstorm = {}
 -- The mod's version. Keep it equal to VERSION in steamodded_compat.lua: the
 -- release workflow (.github/workflows/build.yml) checks both and names the
 -- release after it.
-Brainstorm.VERSION = "2.0.0-alpha"
+Brainstorm.VERSION = "2.1.0-alpha"
 
 Brainstorm.SMODS = nil
 
@@ -15,14 +15,23 @@ local saveKeys = { "1", "2", "3", "4", "5" }
 Brainstorm.config = {
   enable = true,
   keybind_autoreroll = "r",
+  -- Hotkeys (changed in Settings > Brainstorm-Rerolled > Hotkeys; the
+  -- defaults are Brainstorm.ST.DEFAULT_KEYS in UI/settings.lua).
   keybinds = {
     options = "t",
     modifier = "lctrl",
     f_reroll = "r",
     a_reroll = "a",
+    save_seed = "s",
     s_state = "z",
     l_state = "x",
   },
+  -- Saved seeds ({ list = { {seed, note}, ... }, deck, stake }); see
+  -- UI/settings.lua.
+  saved_seeds = nil,
+  -- Touch buttons (UI/mobile.lua). nil until the first start, which turns
+  -- it on for Android and off elsewhere.
+  mobile = nil,
   -- Saved filters ({ active = n, list = { {name, assume_enhanced,
   -- conditions}, ... } }); created and upgraded by
   -- Brainstorm.FB.ensure_config() in UI/filter_builder.lua.
@@ -98,6 +107,14 @@ function Brainstorm.init()
   -- The in-game custom filter builder (Brainstorm.FB).
   assert(load(nfs.read(Brainstorm.PATH .. "/UI/filter_builder.lua")))()
   Brainstorm.FB.ensure_config()
+  -- The Settings tab: filter list, saved seeds, hotkeys (Brainstorm.ST).
+  assert(load(nfs.read(Brainstorm.PATH .. "/UI/settings.lua")))()
+  Brainstorm.ST.ensure_config()
+  -- Touch controls (Brainstorm.MB): the "Mobile Friendly" setting.
+  assert(load(nfs.read(Brainstorm.PATH .. "/UI/mobile.lua")))()
+  Brainstorm.MB.ensure_config()
+  -- Reads the running game's item lists for the searcher (Brainstorm.gamedata).
+  Brainstorm.gamedata = assert(load(nfs.read(Brainstorm.PATH .. "/Core/gamedata.lua")))()
 
   -- Load the native searcher. If it fails (missing file, unsupported OS),
   -- everything except auto-reroll keeps working.
@@ -113,36 +130,27 @@ end
 
 local key_press_update_ref = Controller.key_press_update
 function Controller:key_press_update(key, dt)
+    -- A hotkey button was clicked (Settings > Hotkeys): this key is its new
+    -- key, and nothing else (Esc must not close the menu).
+    if Brainstorm.ST and Brainstorm.ST.capturing then
+        Brainstorm.ST.capture(key)
+        return
+    end
     local keybinds = Brainstorm.config.keybinds
+    -- While a text field has the keyboard (a filter name, a seed), keys are
+    -- text, not hotkeys: typing "x1" must not load save slot 1. Checked
+    -- before the game handles the key, which may close the field.
+    local typing = self.text_input_hook ~= nil
     key_press_update_ref(self, key, dt)
-    for i, k in ipairs(saveKeys) do
-        --  SaveState
+    if typing then
+        return
+    end
+    for _, k in ipairs(saveKeys) do
         if key == k and love.keyboard.isDown(keybinds.s_state) then
-            -- G.ARGS.save_run is the game's latest autosave of this run; it
-            -- is nil until the first one (saving nil would crash).
-            if G.STAGE == G.STAGES.RUN and G.ARGS.save_run == nil then
-                saveManagerAlert("Nothing to save yet")
-            elseif G.STAGE == G.STAGES.RUN then
-                compress_and_save(G.SETTINGS.profile .. "/" .. "saveState" .. k .. ".jkr", G.ARGS.save_run)
-                saveManagerAlert("Saved state to slot [" .. k .. "]")
-            end
+            Brainstorm.saveState(k)
         end
-        --  LoadState
         if key == k and love.keyboard.isDown(keybinds.l_state) then
-            -- Read the slot before touching the current run: an empty slot
-            -- used to delete the run and start a new one (start_run with no
-            -- savetext means "new run").
-            local saved = get_compressed(G.SETTINGS.profile .. "/" .. "saveState" .. k .. ".jkr")
-            if saved == nil then
-                saveManagerAlert("Slot [" .. k .. "] is empty")
-            else
-                G:delete_run()
-                G.SAVED_GAME = STR_UNPACK(saved)
-                G:start_run({
-                    savetext = G.SAVED_GAME,
-                })
-                saveManagerAlert("Loaded save from slot [" .. k .. "]")
-            end
+            Brainstorm.loadState(k)
         end
     end
   
@@ -150,14 +158,59 @@ function Controller:key_press_update(key, dt)
         if key == keybinds.f_reroll then
             Brainstorm.reroll()
         elseif key == keybinds.a_reroll then
-            -- Same key starts a search or cancels the running one.
-            if Brainstorm.ar_job then
-                Brainstorm.stopAutoReroll("Search cancelled")
-            else
-                Brainstorm.startAutoReroll()
-            end
+            Brainstorm.toggleAutoReroll()
+        elseif key == keybinds.options then
+            Brainstorm.ST.open()
+        elseif key == keybinds.save_seed then
+            Brainstorm.ST.save_current_seed()
         end
     end
+end
+
+-- Save states: slot k ("1".."5") holds a copy of the run's latest autosave,
+-- in the profile folder as saveState<k>.jkr. Used by the hotkeys above and
+-- the Mobile Friendly buttons (UI/mobile.lua).
+local function stateFile(k)
+  return G.SETTINGS.profile .. "/" .. "saveState" .. k .. ".jkr"
+end
+
+function Brainstorm.saveState(k)
+  if G.STAGE ~= G.STAGES.RUN then
+    saveManagerAlert("Start a run to save its state")
+  elseif G.ARGS.save_run == nil then
+    -- G.ARGS.save_run is the game's latest autosave of this run; it is nil
+    -- until the first one (saving nil would crash).
+    saveManagerAlert("Nothing to save yet")
+  else
+    compress_and_save(stateFile(k), G.ARGS.save_run)
+    saveManagerAlert("Saved state to slot [" .. k .. "]")
+  end
+end
+
+function Brainstorm.loadState(k)
+  -- Read the slot before touching the current run: an empty slot used to
+  -- delete the run and start a new one (start_run with no savetext means
+  -- "new run").
+  local saved = get_compressed(stateFile(k))
+  if saved == nil then
+    saveManagerAlert("Slot [" .. k .. "] is empty")
+    return
+  end
+  G:delete_run()
+  G.SAVED_GAME = STR_UNPACK(saved)
+  G:start_run({
+    savetext = G.SAVED_GAME,
+  })
+  saveManagerAlert("Loaded save from slot [" .. k .. "]")
+end
+
+-- Starts a search, or cancels the running one.
+function Brainstorm.toggleAutoReroll()
+  if Brainstorm.ar_job then
+    Brainstorm.stopAutoReroll("Search cancelled")
+  else
+    Brainstorm.startAutoReroll()
+  end
 end
 
 function saveManagerAlert(text)
@@ -219,18 +272,40 @@ end
 -- (Brainstorm.pollAutoReroll) and starts the run as soon as a seed is found.
 -- ---------------------------------------------------------------------------
 
+-- The running game's item lists as text for the native searcher (see
+-- Core/gamedata.lua): what makes searches right for a modded game, another
+-- deck or a challenge. nil if they can't be read; the library then uses its
+-- built-in lists of the unmodded game, and Brainstorm.game_data_error says
+-- why.
+function Brainstorm.gameData()
+  if not Brainstorm.gamedata then
+    return nil
+  end
+  local ok, text, err = pcall(Brainstorm.gamedata.get)
+  if not ok then
+    text, err = nil, tostring(text)
+  end
+  Brainstorm.game_data_error = (not text) and err or nil
+  return text
+end
+
 -- What native.start() needs: where to start, and the active filter.
 function Brainstorm.searchOptions()
   return {
     -- Start from a random point so repeated searches give different seeds.
+    -- The clock is part of it: the cursor alone repeats when the mouse
+    -- hasn't moved since the last search.
     start_seed = random_string(
       8,
       G.CONTROLLER.cursor_hover.T.x * 0.33411983
         + G.CONTROLLER.cursor_hover.T.y * 0.874146
         + 0.412311010 * G.CONTROLLER.cursor_hover.time
+        + (os.time() % 100003) * 0.000731
+        + (love.timer.getTime() % 1) * 0.37
     ),
     -- The active saved filter as text ("" = none; see UI/filter_builder.lua).
     filter_spec = Brainstorm.FB.spec(),
+    game_data = Brainstorm.gameData(),
   }
 end
 
@@ -252,6 +327,19 @@ function Brainstorm.startAutoReroll()
     return
   end
   local opts = Brainstorm.searchOptions()
+  -- Say once (per reason) that the game's own lists couldn't be read.
+  local why = not opts.game_data and Brainstorm.game_data_error
+  -- A game with Steamodded's object weights (Pokermon, ...) picks items in
+  -- another way altogether: the built-in lists would be wrong for nearly
+  -- every seed, so without the game's own lists there is no search.
+  if why and SMODS and SMODS.optional_features and SMODS.optional_features.object_weights then
+    saveManagerAlert("Can't search this modded game: " .. why)
+    return
+  end
+  if why and Brainstorm.game_data_warned ~= why then
+    Brainstorm.game_data_warned = why
+    saveManagerAlert("Using built-in item lists: " .. why)
+  end
   local job, err = Brainstorm.native.start(opts)
   if not job then
     saveManagerAlert("Search failed: " .. tostring(err))
@@ -318,8 +406,58 @@ function Brainstorm.startFoundRun(seed)
   -- Marks the seed as "found by filter" (shown in blue on the run screen)
   -- and makes the run count as unseeded, as it was before.
   G.GAME.used_filter = true
-  G.GAME.filter_info = { seed = seed, filter_params = Brainstorm.ar_opts }
+  -- (Not the whole ar_opts: the game's item lists in it are long, and this
+  -- table is written into every save of the run.)
+  local opts = Brainstorm.ar_opts or {}
+  G.GAME.filter_info = {
+    seed = seed,
+    filter_params = { start_seed = opts.start_seed, filter_spec = opts.filter_spec },
+  }
   G.GAME.seeded = false
+  Brainstorm.checkPrediction(seed)
+end
+
+-- Compares what the run that has just started shows on ante 1 (skip tags,
+-- shop voucher, boss) with what the searcher predicted for its seed. They
+-- only differ when the game generates things differently from the lists it
+-- reported, e.g. a mod that changes how items are picked; the filter may
+-- then not hold for this seed, and the player is told.
+-- Returns the list of things that differ (empty if all is well), or nil if
+-- nothing could be compared.
+function Brainstorm.checkPrediction(seed)
+  local native, opts = Brainstorm.native, Brainstorm.ar_opts
+  if not (native and native.lib and opts) then
+    return nil
+  end
+  local ok, predicted = pcall(native.predict_start, { game_data = opts.game_data }, seed)
+  if not ok or type(predicted) ~= "table" then
+    return nil
+  end
+  local gm = G.GAME
+  local resets = gm.round_resets or {}
+  local voucher = gm.current_round and gm.current_round.voucher
+  if type(voucher) == "table" then
+    voucher = voucher[1] -- Steamodded keeps a list (there can be several)
+  end
+  local actual = {
+    small = resets.blind_tags and resets.blind_tags.Small,
+    big = resets.blind_tags and resets.blind_tags.Big,
+    voucher = voucher,
+    boss = resets.blind_choices and resets.blind_choices.Boss,
+  }
+  local names = { small = "Small Blind tag", big = "Big Blind tag", voucher = "voucher", boss = "boss" }
+  local wrong = {}
+  for _, what in ipairs({ "small", "big", "voucher", "boss" }) do
+    local p, a = predicted[what], actual[what]
+    if p and p ~= "?" and type(a) == "string" and a ~= p then
+      wrong[#wrong + 1] = names[what]
+      print(string.format("[Brainstorm-Rerolled] seed %s: predicted %s %s, the game has %s", seed, names[what], p, a))
+    end
+  end
+  if #wrong > 0 then
+    saveManagerAlert("Prediction differs from the game (" .. table.concat(wrong, ", ") .. "): this seed may not match the filter")
+  end
+  return wrong
 end
 
 local update_ref = Game.update
@@ -328,6 +466,13 @@ function Game:update(dt)
   if Brainstorm.ar_job then
     Brainstorm.pollAutoReroll()
   end
+  -- A note (Settings > Saved seeds) is saved when typing in it ends, also
+  -- by clicking somewhere else.
+  local typing = G.CONTROLLER and G.CONTROLLER.text_input_hook ~= nil
+  if Brainstorm.was_typing and not typing then
+    Brainstorm.writeConfig()
+  end
+  Brainstorm.was_typing = typing
 end
 
 local cursr = create_UIBox_round_scores_row

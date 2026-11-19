@@ -50,8 +50,11 @@ extern "C" {
  *   1  first version
  *   2  bs_params.filter_spec added at the end. The library still accepts
  *      api_version 1 (and then never reads filter_spec), so an older mod
- *      keeps working with a newer library. */
-#define BS_API_VERSION 2
+ *      keeps working with a newer library.
+ *   3  bs_params.game_data added at the end (never read for versions 1-2);
+ *      bs_predict_start() added.
+ *   4  bs_describe_seed() added; game data may describe a weighted game. */
+#define BS_API_VERSION 4
 
 /* Return values of bs_search_poll(). */
 enum {
@@ -106,6 +109,15 @@ typedef struct bs_params {
    * Checked in addition to the options above. NULL or "" = none. A mistake
    * makes bs_search_start() fail with a message in bs_last_error(). */
   const char *filter_spec;
+
+  /* Since version 3. The item lists and odds of the running game, in the
+   * text format described in gamedata.hpp, so that filter_spec is checked
+   * against the game as it is (mods, deck, challenge) instead of the
+   * unmodded lists built into the library. NULL or "" = the unmodded game.
+   * A mistake makes bs_search_start() fail with a message in
+   * bs_last_error(). The options above filter_spec are always checked
+   * against the unmodded game. */
+  const char *game_data;
 } bs_params;
 
 /* Opaque handle to a running search. Lua only ever holds the pointer. */
@@ -149,6 +161,31 @@ BS_API const char *bs_last_error(void);
  * handy for a "does my current seed pass?" button.
  */
 BS_API int32_t bs_check_seed(const bs_params *params, const char *seed);
+
+/*
+ * What a run on `seed` starts with, for the game in params->game_data:
+ * writes "small=<tag key> big=<tag key> voucher=<key> boss=<key>" (a value
+ * is "?" when it can't be predicted; keys are percent-encoded like the game
+ * data's, e.g. a space as %20) into `out`, at most `out_size` bytes
+ * including the final 0. Returns 1, or -1 on bad parameters. The mod
+ * compares this with the run it has just started, to notice a game whose
+ * generation differs from the prediction (see gamedata.hpp).
+ */
+BS_API int32_t bs_predict_start(const bs_params *params, const char *seed,
+                                char *out, int32_t out_size);
+
+/*
+ * Everything the library predicts for the first `antes` antes of a run on
+ * `seed`, as text, one line per ante: the skip tags, voucher and boss, the
+ * first `cards` shop cards, the first `packs` shop packs and what The Soul
+ * would give (format: FilterProgram::describe in filterprog.hpp). For
+ * development: comparing it with what the game really generates shows
+ * whether predictions are right. Returns 1, or -1 (bad parameters, or `out` too
+ * small).
+ */
+BS_API int32_t bs_describe_seed(const bs_params *params, const char *seed,
+                                int32_t antes, int32_t cards, int32_t packs,
+                                char *out, int32_t out_size);
 
 #ifdef __cplusplus
 }

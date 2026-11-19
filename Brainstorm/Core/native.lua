@@ -12,7 +12,7 @@
 
     local native = assert(load(nfs.read(path .. "/Core/native.lua")))()
     local ok, err = native.load(Brainstorm.PATH)
-    local job = native.start({ tag = "tag_charm", souls = 1, ... })
+    local job = native.start({ filter_spec = "tag tag_charm", game_data = text })
     -- every frame:
     local status, seed, checked = native.poll(job)   -- "running"/"found"/...
     native.free(job)                                  -- when finished
@@ -22,8 +22,9 @@ local ffi = require("ffi")
 
 local native = {}
 
--- Must match BS_API_VERSION in brainstorm_api.h (2: adds filter_spec).
-native.API_VERSION = 2
+-- Must match BS_API_VERSION in brainstorm_api.h (2: adds filter_spec;
+-- 3: adds game_data and bs_predict_start; 4: adds bs_describe_seed).
+native.API_VERSION = 4
 
 -- ffi.cdef may only declare each type once per Lua state. If this file is
 -- loaded twice (e.g. a mod reload), the second declaration would error, so
@@ -47,6 +48,7 @@ pcall(
     int32_t burglar;
     const char *custom_filter;
     const char *filter_spec;
+    const char *game_data;
   } bs_params;
 
   typedef struct bs_job bs_job;
@@ -59,6 +61,11 @@ pcall(
   void bs_search_free(bs_job *job);
   const char *bs_last_error(void);
   int32_t bs_check_seed(const bs_params *params, const char *seed);
+  int32_t bs_describe_seed(const bs_params *params, const char *seed,
+                           int32_t antes, int32_t cards, int32_t packs,
+                           char *out, int32_t out_size);
+  int32_t bs_predict_start(const bs_params *params, const char *seed,
+                           char *out, int32_t out_size);
 ]]
 )
 
@@ -74,6 +81,43 @@ local LIB_NAMES = {
   Linux = "Immolate.so",
 }
 
+-- Android reports ffi.os "Linux" too, so it is recognised through LÖVE.
+-- Only 64-bit ARM phones are supported (nearly all phones since 2017).
+local ANDROID_LIB = "Immolate-android-arm64.so"
+
+local function is_android()
+  return love and love.system and love.system.getOS() == "Android"
+end
+
+-- Android may refuse to run code from the shared storage the mods folder is
+-- on (it is mounted "noexec"). The game's own private folder (LÖVE's save
+-- folder) allows it, so the library is copied there and loaded from there.
+-- Returns the library, or nil and an error message.
+local function load_android(mod_path)
+  local ok, lib = pcall(ffi.load, mod_path .. "/" .. ANDROID_LIB)
+  if ok then
+    return lib
+  end
+  local first_err = tostring(lib)
+  local f = io.open(mod_path .. "/" .. ANDROID_LIB, "rb")
+  if not f then
+    return nil, "could not load " .. ANDROID_LIB .. ": " .. first_err
+  end
+  local data = f:read("*a")
+  f:close()
+  -- Written fresh every start, so a mod update replaces the old copy.
+  local written = love.filesystem.write(ANDROID_LIB, data)
+  if not written then
+    return nil, "could not copy " .. ANDROID_LIB .. " (" .. first_err .. ")"
+  end
+  local copy = love.filesystem.getSaveDirectory() .. "/" .. ANDROID_LIB
+  ok, lib = pcall(ffi.load, copy)
+  if not ok then
+    return nil, "could not load " .. ANDROID_LIB .. ": " .. first_err .. "; copy: " .. tostring(lib)
+  end
+  return lib
+end
+
 native.lib = nil
 
 -- Loads the native library from the mod folder. Returns true, or false and
@@ -82,13 +126,27 @@ function native.load(mod_path)
   if native.lib then
     return true
   end
-  local file = LIB_NAMES[ffi.os]
-  if not file then
-    return false, "unsupported operating system: " .. tostring(ffi.os)
-  end
-  local ok, lib = pcall(ffi.load, mod_path .. "/" .. file)
-  if not ok then
-    return false, "could not load " .. file .. ": " .. tostring(lib)
+  local file, lib
+  if is_android() then
+    if ffi.arch ~= "arm64" then
+      return false, "unsupported phone (" .. tostring(ffi.arch) .. "; needs 64-bit ARM)"
+    end
+    file = ANDROID_LIB
+    local err
+    lib, err = load_android(mod_path)
+    if not lib then
+      return false, err
+    end
+  else
+    file = LIB_NAMES[ffi.os]
+    if not file then
+      return false, "unsupported operating system: " .. tostring(ffi.os)
+    end
+    local ok
+    ok, lib = pcall(ffi.load, mod_path .. "/" .. file)
+    if not ok then
+      return false, "could not load " .. file .. ": " .. tostring(lib)
+    end
   end
   -- Catch an old library left over from a previous mod version: calling a
   -- function with a different signature would crash the game.
@@ -136,6 +194,9 @@ local function make_params(opts)
   p.custom_filter = opts.custom_filter or "No Filter"
   -- The custom filter as text (see Immolate/src/filterprog.hpp), or "".
   p.filter_spec = opts.filter_spec or ""
+  -- The running game's item lists as text (see Core/gamedata.lua), or ""
+  -- for the unmodded lists built into the library.
+  p.game_data = opts.game_data or ""
   return p
 end
 
@@ -182,6 +243,37 @@ function native.check_seed(opts, seed)
     return nil, ffi.string(native.lib.bs_last_error())
   end
   return r == 1
+end
+
+-- What a run on `seed` starts with, for the game in opts.game_data:
+-- { small = tag key, big = tag key, voucher = key, boss = key } ("?" where
+-- it can't be predicted), or nil and an error message.
+local start_buf = ffi.new("char[512]")
+function native.predict_start(opts, seed)
+  local r = native.lib.bs_predict_start(make_params(opts), seed, start_buf, 512)
+  if r < 0 then
+    return nil, ffi.string(native.lib.bs_last_error())
+  end
+  local out = {}
+  -- Keys come percent-encoded (a modded key may contain a space).
+  for name, key in ffi.string(start_buf):gmatch("(%w+)=(%S+)") do
+    out[name] = key:gsub("%%(%x%x)", function(h)
+      return string.char(tonumber(h, 16))
+    end)
+  end
+  return out
+end
+
+-- Everything predicted for the first `antes` antes of a run on `seed`, as
+-- text (one line per ante; see bs_describe_seed in brainstorm_api.h). For
+-- the development tools.
+local describe_buf = ffi.new("char[16384]")
+function native.describe_seed(opts, seed, antes, cards, packs)
+  local r = native.lib.bs_describe_seed(make_params(opts), seed, antes or 1, cards or 4, packs or 4, describe_buf, 16384)
+  if r < 0 then
+    return nil, ffi.string(native.lib.bs_last_error())
+  end
+  return ffi.string(describe_buf)
 end
 
 return native

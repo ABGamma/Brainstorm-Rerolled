@@ -41,6 +41,15 @@ struct FilterConfig {
   // Custom filter built in game (filterprog.hpp), or null. Checked after
   // all the options above; read-only, shared by every worker thread.
   std::shared_ptr<const FilterProgram> program;
+
+  // True when the custom filter is the only thing to check (none of the
+  // menu options above is set).
+  bool programOnly() const {
+    return program && tag == Item::RETRY && voucher == Item::RETRY &&
+           pack == Item::RETRY && souls == 0 && !observatory && !perkeo &&
+           !copymoney && !retcon && !bean && !burglar &&
+           custom == customFilters::NO_FILTER;
+  }
 };
 
 long brainstormFilter(Instance inst, const FilterConfig &cfg);
