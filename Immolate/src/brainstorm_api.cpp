@@ -21,6 +21,7 @@
 
 #include "brainstorm_api.h"
 #include "filterprog.hpp"
+#include "gamedata.hpp"
 #include "filters.hpp"
 #include "functions.hpp"
 #include "prefilter.hpp"
@@ -70,6 +71,17 @@ bool validSeedString(const char *s) {
 // Reads a C string field, treating NULL as "".
 std::string str(const char *s) { return s ? std::string(s) : std::string(); }
 
+// The game the parameters describe: params->game_data, or the unmodded game.
+bool gameData(const bs_params *p, std::shared_ptr<const GameData> &data) {
+  data = GameData::vanilla();
+  if (p->api_version >= 3 && p->game_data && *p->game_data) {
+    std::string error;
+    data = GameData::parse(p->game_data, error);
+    if (!data) return setError(error);
+  }
+  return true;
+}
+
 // Translates the C parameter struct into a FilterConfig.
 bool buildConfig(const bs_params *p, FilterConfig &cfg) {
   if (!p) return setError("params is NULL");
@@ -96,11 +108,14 @@ bool buildConfig(const bs_params *p, FilterConfig &cfg) {
   cfg.burglar = p->burglar != 0;
   cfg.custom = stringToFilter(str(p->custom_filter));
 
-  // filter_spec only exists in version 2+ structs: never read it otherwise.
+  // game_data only exists in version 3+ structs, filter_spec in 2+: never
+  // read them otherwise.
+  std::shared_ptr<const GameData> data;
+  if (!gameData(p, data)) return false;
   if (p->api_version >= 2 && p->filter_spec && *p->filter_spec) {
     std::string error;
     std::unique_ptr<FilterProgram> prog =
-        FilterProgram::parse(p->filter_spec, error);
+        FilterProgram::parse(p->filter_spec, error, data);
     if (!prog) return setError("custom filter, " + error);
     if (!prog->conditions().empty()) cfg.program = std::move(prog);
   }
@@ -368,6 +383,61 @@ BS_API int32_t bs_check_seed(const bs_params *params, const char *seed) {
   Seed s{std::string(seed)};
   Instance inst(s);
   return brainstormFilter(inst, cfg) >= 1 ? 1 : 0;
+}
+
+BS_API int32_t bs_predict_start(const bs_params *params, const char *seed,
+                                char *out, int32_t out_size) {
+  if (!params || !out || out_size <= 0) {
+    setError("bad arguments");
+    return -1;
+  }
+  if (params->api_version < 1 || params->api_version > BS_API_VERSION) {
+    setError("API version mismatch");
+    return -1;
+  }
+  std::shared_ptr<const GameData> data;
+  if (!gameData(params, data)) return -1;
+  if (!seed || !validSeedString(seed)) {
+    setError("invalid seed");
+    return -1;
+  }
+  Seed s{std::string(seed)};
+  FilterProgram::Start start = FilterProgram::predictStart(data, s);
+  auto key = [&](int id) {
+    return id == GameData::NONE ? std::string("?") : GameData::encodeWord(data->keyOf(id));
+  };
+  std::string text = "small=" + key(start.small) + " big=" + key(start.big) +
+                     " voucher=" + key(start.voucher) + " boss=" + key(start.boss);
+  std::strncpy(out, text.c_str(), (size_t)out_size - 1);
+  out[out_size - 1] = 0;
+  return 1;
+}
+
+BS_API int32_t bs_describe_seed(const bs_params *params, const char *seed,
+                                int32_t antes, int32_t cards, int32_t packs,
+                                char *out, int32_t out_size) {
+  if (!params || !out || out_size <= 0) {
+    setError("bad arguments");
+    return -1;
+  }
+  if (params->api_version < 1 || params->api_version > BS_API_VERSION) {
+    setError("API version mismatch");
+    return -1;
+  }
+  std::shared_ptr<const GameData> data;
+  if (!gameData(params, data)) return -1;
+  if (!seed || !validSeedString(seed)) {
+    setError("invalid seed");
+    return -1;
+  }
+  Seed s{std::string(seed)};
+  std::string text = FilterProgram::describe(data, s, antes, cards, packs);
+  if ((int32_t)text.size() >= out_size) {
+    setError("output buffer too small");
+    return -1;
+  }
+  std::memcpy(out, text.c_str(), text.size() + 1);
+  return 1;
 }
 
 } // extern "C"

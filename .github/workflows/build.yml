@@ -34,11 +34,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Configure (MSVC, static runtime)
-        run: cmake -S Immolate -B build -A x64
+        run: cmake -S Immolate -B build -A x64 -DFULL_TESTS=ON
       - name: Build
         run: cmake --build build --config Release --parallel
       - name: Test
-        run: ctest --test-dir build -C Release --output-on-failure
+        run: ctest --test-dir build -C Release --output-on-failure --parallel 4
       - name: Check the DLL has no Visual C++ runtime dependency
         shell: bash
         run: |
@@ -56,14 +56,18 @@ jobs:
     runs-on: macos-latest # Apple Silicon runner
     steps:
       - uses: actions/checkout@v7
+      # For the exporter test (tools/test-exporter.sh): CMake only adds it
+      # when LuaJIT is found, so a failed install just skips that test.
+      - name: Install LuaJIT
+        run: brew install luajit || true
       - name: Configure (universal arm64 + x86_64)
-        run: cmake -S Immolate -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S Immolate -B build -DCMAKE_BUILD_TYPE=Release -DFULL_TESTS=ON
       - name: Build
         run: cmake --build build --parallel
       - name: Verify both architectures are present
         run: lipo -info build/Immolate.dylib | tee /dev/stderr | grep -q "x86_64 arm64\|arm64 x86_64"
       - name: Test (Apple Silicon)
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure --parallel 3
       - name: Test (Intel, via Rosetta)
         # Proves the x86_64 slice predicts exactly the same seeds.
         run: |
@@ -76,8 +80,33 @@ jobs:
           name: lib-macos
           path: build/Immolate.dylib
 
+  # Android phones (64-bit ARM), for Balatro made into a phone app with
+  # Lovely Mobile Maker. The runner comes with the Android NDK. The tests
+  # can't run here (no phone); run them on a phone with adb (see README).
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure (NDK, arm64, static C++ runtime)
+        run: |
+          cmake -S Immolate -B build \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_LATEST_HOME/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-24 \
+            -DANDROID_STL=c++_static -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --parallel --target Immolate
+      - name: Strip and rename
+        run: |
+          "$ANDROID_NDK_LATEST_HOME"/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
+            -o Immolate-android-arm64.so build/Immolate.so
+          file Immolate-android-arm64.so | tee /dev/stderr | grep -q "ARM aarch64"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lib-android
+          path: Immolate-android-arm64.so
+
   package:
-    needs: [windows, macos]
+    needs: [windows, macos, android]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -93,6 +122,7 @@ jobs:
           rm -f dist/Brainstorm-Rerolled/Immolate.dll dist/Brainstorm-Rerolled/config.lua
           cp libs/lib-windows/Immolate.dll dist/Brainstorm-Rerolled/
           cp libs/lib-macos/Immolate.dylib dist/Brainstorm-Rerolled/
+          cp libs/lib-android/Immolate-android-arm64.so dist/Brainstorm-Rerolled/
           ls -la dist/Brainstorm-Rerolled
       - uses: actions/upload-artifact@v7
         with:

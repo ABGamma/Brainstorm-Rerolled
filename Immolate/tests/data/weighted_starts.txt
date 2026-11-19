@@ -1,0 +1,14 @@
+POKCHKA1 tag_voucher tag_uncommon v_magic_trick bl_goad
+POKCHKB1 tag_coupon tag_investment v_blank bl_window
+POKCHKC1 tag_d_six tag_investment v_planet_merchant bl_manacle
+POKCHKD1 tag_boss tag_rare v_clearance_sale bl_hook
+POKCHKE1 tag_uncommon tag_coupon v_overstock_norm bl_hook
+POKCHKF1 tag_d_six tag_investment v_seed_money bl_manacle
+POKCHKG1 tag_boss tag_skip v_paint_brush bl_head
+POKCHKH1 tag_d_six tag_uncommon v_crystal_ball bl_head
+POKCHKJ1 tag_d_six tag_rare v_clearance_sale bl_goad
+POKCHKK1 tag_rare tag_boss v_telescope bl_window
+POKCHKL1 tag_d_six tag_foil v_overstock_norm bl_psychic
+POKCHKM1 tag_economy tag_double v_seed_money bl_club
+POKCHKN1 tag_rare tag_voucher v_crystal_ball bl_club
+POKCHKP1 tag_voucher tag_polychrome v_hone bl_pillar

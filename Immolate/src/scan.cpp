@@ -2,6 +2,7 @@
 
 #include "scan.hpp"
 
+#include "filterprog.hpp"
 #include "functions.hpp"
 
 #include <algorithm>
@@ -22,13 +23,21 @@ long long scanRange(const FilterConfig &cfg, Prefilter *prefilter,
     }
   };
 
+  // With only a custom filter set (what the mod sends), the filter program
+  // is asked directly: it needs no locks and no copy of the Instance, which
+  // brainstormFilter() makes for the menu options.
+  const FilterProgram *only = cfg.programOnly() ? cfg.program.get() : nullptr;
+  auto passes = [&](Instance &inst) {
+    return only ? only->matches(inst) : brainstormFilter(inst, cfg) >= 1;
+  };
+
   if (!prefilter || !prefilter->active()) {
     // Plain path: every seed through the full filter.
     Seed s(firstId);
     Instance inst(s);
     for (long long i = 0; i < count; i++) {
       if (stop.load(std::memory_order_relaxed)) break;
-      if (brainstormFilter(inst, cfg) >= 1) {
+      if (passes(inst)) {
         checked.fetch_add(sinceReport, std::memory_order_relaxed);
         return firstId + i;
       }
@@ -53,7 +62,7 @@ long long scanRange(const FilterConfig &cfg, Prefilter *prefilter,
       long long id = firstId + done + i;
       Seed one(id);
       Instance inst(one);
-      if (brainstormFilter(inst, cfg) >= 1) {
+      if (passes(inst)) {
         checked.fetch_add(sinceReport + i, std::memory_order_relaxed);
         return id;
       }

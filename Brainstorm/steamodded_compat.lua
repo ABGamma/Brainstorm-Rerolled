@@ -4,4 +4,4 @@
 --- PREFIX: brainstorm
 --- MOD_AUTHOR: [ABGamma]
 --- MOD_DESCRIPTION: A newly rerolled balatro reroll mod.
---- VERSION: 2.0.0-alpha
+--- VERSION: 2.1.0-alpha

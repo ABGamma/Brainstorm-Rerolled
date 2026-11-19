@@ -18,7 +18,8 @@
 //
 // WHY IT CANNOT CHANGE RESULTS
 //   The prefilter only ever *rejects*, and only when the roll it computed is
-//   exactly what the game produces (tests/prefilter_test.cpp compares every
+//   exactly what the game produces, from the same lists the full check reads
+//   (gamedata.hpp; tests/prefilter_test.cpp compares every
 //   computed roll with the normal engine). If the first pick is a locked
 //   item, the game re-rolls with a new stream ("Tag1_resample2", then
 //   "..._resample3", ...); the prefilter reproduces up to MAX_RESAMPLE of
@@ -27,8 +28,10 @@
 #pragma once
 
 #include "filters.hpp"
+#include "gamedata.hpp"
 
 #include <array>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -61,12 +64,15 @@ public:
 private:
   struct Check {
     Kind kind;
-    Item want;
+    int want; // number of the item in `data`
   };
   std::vector<Check> checks;
-  // Items locked at the start of a run (Instance::initLocks(1, false, true)),
-  // exactly what brainstormFilter() uses.
-  std::vector<bool> locked;
+
+  // The game the search is for (gamedata.hpp), and its ante 1 tag and
+  // voucher lists as a fresh run has them: ids, GameData::NONE in the
+  // unavailable slots (which make the game re-roll).
+  std::shared_ptr<const GameData> data;
+  std::vector<int> tagList, voucherList;
 
   // Key lengths whose seed hash collect() must provide.
   std::vector<int> keyLengths;
@@ -82,5 +88,5 @@ private:
   void streamStart(const std::string &key, const LaneSeed lanes[LANES],
                    const int *idx, int count, double out[LANES]);
   void roll(Kind kind, const LaneSeed lanes[LANES], const int *idx, int count,
-            Item items[LANES], bool decided[LANES]);
+            int items[LANES], bool decided[LANES]);
 };

@@ -8,7 +8,9 @@
 #
 # Quick start:   cmake -B build -DCMAKE_BUILD_TYPE=Release
 #                cmake --build build --config Release
-#                ctest --test-dir build -C Release --output-on-failure
+#                ctest --test-dir build -C Release --output-on-failure -j 8
+# The tests run at a quick size by default (about 15 s in parallel);
+# -DFULL_TESTS=ON checks about 10x more seeds (CI does, before releases).
 cmake_minimum_required(VERSION 3.16)
 
 # Must be set before project() to take effect.
@@ -60,6 +62,7 @@ set(CORE_SOURCES
   src/scan.cpp
   src/fastscan.cpp
   src/filterprog.cpp
+  src/gamedata.cpp
 )
 
 # Core logic as a static library, shared by the mod library and the tests.
@@ -99,6 +102,17 @@ target_link_libraries(immol PRIVATE immolate_fp Threads::Threads)
 # Tests
 # ---------------------------------------------------------------------------
 enable_testing()
+# Quick by default: each test checks fewer seeds (the same checks, just
+# fewer random cases). golden always runs in full: its output is compared
+# with a fixed file.
+option(FULL_TESTS "Run the tests at full size (slower; CI turns this on)" OFF)
+if(FULL_TESTS)
+  set(TEST_SIZE "")
+  set(MATH_SEEDS 20000000)
+else()
+  set(TEST_SIZE quick)
+  set(MATH_SEEDS 2000000)
+endif()
 add_executable(golden tests/golden.cpp)
 target_link_libraries(golden PRIVATE immolate_core)
 
@@ -123,24 +137,41 @@ target_link_libraries(bench PRIVATE immolate_core)
 # Fast-path maths (fract, round13) must match the original bit for bit.
 add_executable(math_test tests/math_test.cpp)
 target_link_libraries(math_test PRIVATE immolate_core)
-add_test(NAME math COMMAND math_test)
+add_test(NAME math COMMAND math_test ${MATH_SEEDS})
 
 # Batched first check (prefilter) must match the normal engine exactly.
 add_executable(prefilter_test tests/prefilter_test.cpp)
 target_link_libraries(prefilter_test PRIVATE immolate_core)
-add_test(NAME prefilter COMMAND prefilter_test)
+add_test(NAME prefilter COMMAND prefilter_test ${TEST_SIZE})
 
 # Bean / Burglar / Souls shortcuts == the full generators (src/fastscan.cpp).
 add_executable(fastscan_test tests/fastscan_test.cpp)
 target_link_libraries(fastscan_test PRIVATE immolate_core)
-add_test(NAME fastscan COMMAND fastscan_test)
+add_test(NAME fastscan COMMAND fastscan_test ${TEST_SIZE})
 
 # Custom filters: parser, fast check == reference meaning, search (src/filterprog.cpp).
 add_executable(filterprog_test tests/filterprog_test.cpp)
 target_link_libraries(filterprog_test PRIVATE immolate_core)
-add_test(NAME filterprog COMMAND filterprog_test)
+# Saved lists and run starts of a real weighted game (tests/data).
+target_compile_definitions(filterprog_test PRIVATE
+  TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
+add_test(NAME filterprog COMMAND filterprog_test ${TEST_SIZE})
 
 # Boss blinds vs the real game and the game's rules (src/functions.hpp).
+# The Lua exporter (Brainstorm/Core/gamedata.lua) run against a mock of the
+# unmodded game must reproduce the built-in data. Needs LuaJIT; skipped
+# without it. See tools/test-exporter.sh.
+add_executable(gamedata_tool tests/gamedata_tool.cpp)
+target_link_libraries(gamedata_tool PRIVATE immolate_core)
+find_program(LUAJIT_EXECUTABLE luajit)
+# Skipped when cross-compiling: the test loads the library from the host's LuaJIT.
+if(LUAJIT_EXECUTABLE AND NOT CMAKE_CROSSCOMPILING)
+  add_test(NAME exporter
+           COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../tools/test-exporter.sh
+                   $<TARGET_FILE:gamedata_tool> ${LUAJIT_EXECUTABLE}
+                   $<TARGET_FILE_DIR:Immolate>)
+endif()
+
 add_executable(boss_test tests/boss_test.cpp)
 target_link_libraries(boss_test PRIVATE immolate_core)
 add_test(NAME boss COMMAND boss_test)
@@ -148,7 +179,7 @@ add_test(NAME boss COMMAND boss_test)
 # MinGW (Windows cross-builds): link the C++ runtime into every test program
 # so the .exe files run under Wine/Windows without extra DLLs.
 if(MINGW)
-  foreach(t golden api_test math_test prefilter_test fastscan_test filterprog_test boss_test bench)
+  foreach(t golden api_test math_test prefilter_test fastscan_test filterprog_test boss_test bench gamedata_tool)
     target_link_options(${t} PRIVATE -static)
   endforeach()
 endif()
